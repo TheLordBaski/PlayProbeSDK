@@ -1,0 +1,169 @@
+# =============== #
+# Unity generated #
+# =============== #
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+SerializedBuildInfo/
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+*_BurstDebugInformation_DoNotShip/
+
+# MemoryCaptures can get excessive in size.
+# They also could contain extremely sensitive data
+/[Mm]emoryCaptures/
+
+# Recordings can get excessive in size
+/[Rr]ecordings/
+
+
+# ===================================== #
+# Visual Studio / MonoDevelop generated #
+# ===================================== #
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.utmp**/
+*.VC.db
+/*.csproj
+!*.sln.DotSettings
+/*.sln
+.vs/
+*Unity3DRider.cs*
+*JetBrains*
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics generated file
+crashlytics-build.properties
+
+# Addressables
+!/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Ss]erver[Dd]ata/Test/*
+/[Ss]erver[Dd]ata/ForTesters/*
+
+
+# Temporary auto-generated Android Assets
+#/[Aa]ssets/[Ss]treamingAssets/aa.meta
+#/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ==== #
+# IDEA #
+# ==== #
+
+# User-specific stuff
+.idea/
+*.DotSettings
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+
+**/.idea/shelf/*
+**/.idea/dictionaries
+**/.idea/httpRequests/
+
+# Rider
+# Rider auto-generates .iml files, and contentModel.xml
+**/.idea/**/*.iml
+**/.idea/**/contentModel.xml
+**/.idea/**/modules.xml
+
+# AWS User-specific
+.idea/**/aws.xml
+
+# Generated files
+.idea/**/contentModel.xml
+
+# Sensitive or high-churn files
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+
+
+# ============ #
+# OS generated #
+# ============ #
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Assets/Animations/EnfluxTest/
+Assets/Animations/EnfluxTest
+Assets/Plugins/Editor.meta
+*.json
+PATCH/
+nameTranslation.txt
+Assets/Materials/streamedCommercial.mat
+Assets/Materials/streamedCommercial2.mat
+versionsLogin
+Assets/ApplicationEvent.log.meta
+Assets/ApplicationEvent.log
+Assets/SteamVR/Input/ExampleJSON/actions.json
+unityProject.vrmanifest
+
+
+!actions.json
+!binding_vive.json
+!binding_vive_pro.json
+!binding_vive_tracker.json
+!bindings_vive_controller.json
+!bindings_vive_controller.json
+!Assets/Resources/config.json
+!Packages/manifest.json
+!Assets/Overtone/Resources/*.json
+!Assets/3rdParty/Overtone/Resources/*.json
+GPUCache/
+Logs/
+SABuildLogin.dat
+UserSettings/
+
+# ============ #
+# Debug stuff  #
+# ============ #
+Assets/Debug/**
+Assets/Debug.meta
+
+# ================= #
+# Forced Inclusion  #
+# ================= #
+!ServerData/Develop/catalog*.json
+!ServerData/Release/catalog*.json
+
+# ====================== #
+# Meta Avatars Sample Assets #
+# ====================== #
+/Assets/Oculus/Avatar2_SampleAssets
