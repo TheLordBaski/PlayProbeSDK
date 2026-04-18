@@ -33,9 +33,9 @@ namespace PlayProbe
                 _config = config;
             }
 
-            PlayProbeManager manager = PlayProbeManager.Instance;
+            PlayProbeManagerOld managerOld = PlayProbeManagerOld.Instance;
 
-            if (manager == null)
+            if (managerOld == null)
             {
                 Debug.LogWarning("[PlayProbe] StartTracking failed because PlayProbeManager.Instance is null.");
                 return;
@@ -47,19 +47,19 @@ namespace PlayProbe
             _fpsSampleCount = 0;
             _minFps = float.MaxValue;
 
-            _fpsCoroutine = manager.StartCoroutine(TrackFps());
+            _fpsCoroutine = managerOld.StartCoroutine(TrackFps());
 
             if (_config != null && _config.enablePositionHeatmap)
             {
-                _positionCoroutine = manager.StartCoroutine(TrackPositions());
+                _positionCoroutine = managerOld.StartCoroutine(TrackPositions());
             }
         }
 
         public void StopTracking()
         {
-            PlayProbeManager manager = PlayProbeManager.Instance;
+            PlayProbeManagerOld managerOld = PlayProbeManagerOld.Instance;
 
-            if (manager == null)
+            if (managerOld == null)
             {
                 _fpsCoroutine = null;
                 _positionCoroutine = null;
@@ -68,13 +68,13 @@ namespace PlayProbe
 
             if (_fpsCoroutine != null)
             {
-                manager.StopCoroutine(_fpsCoroutine);
+                managerOld.StopCoroutine(_fpsCoroutine);
                 _fpsCoroutine = null;
             }
 
             if (_positionCoroutine != null)
             {
-                manager.StopCoroutine(_positionCoroutine);
+                managerOld.StopCoroutine(_positionCoroutine);
                 _positionCoroutine = null;
             }
         }
@@ -124,11 +124,11 @@ namespace PlayProbe
 
                 if (_fpsSampleCount % 10 == 0)
                 {
-                    PlayProbeManager manager = PlayProbeManager.Instance;
+                    PlayProbeManagerOld managerOld = PlayProbeManagerOld.Instance;
 
-                    if (manager != null && manager.Events != null)
+                    if (managerOld != null && managerOld.Events != null)
                     {
-                        manager.Events.LogFps(currentFps);
+                        managerOld.Events.LogFps(currentFps);
                     }
                 }
             }
@@ -147,16 +147,16 @@ namespace PlayProbe
 
                 yield return new WaitForSeconds(interval);
 
-                PlayProbeManager manager = PlayProbeManager.Instance;
+                PlayProbeManagerOld managerOld = PlayProbeManagerOld.Instance;
 
-                if (manager == null || manager.Events == null)
+                if (managerOld == null || managerOld.Events == null)
                 {
                     continue;
                 }
 
                 if (_trackedTransform != null)
                 {
-                    manager.Events.LogPosition(_trackedTransform.position);
+                    managerOld.Events.LogPosition(_trackedTransform.position);
                 }
 
                 foreach (KeyValuePair<string, Transform> tracked in _trackedObjects)
@@ -166,7 +166,7 @@ namespace PlayProbe
                         continue;
                     }
 
-                    manager.Events.LogPosition(tracked.Value.position, tracked.Key);
+                    managerOld.Events.LogPosition(tracked.Value.position, tracked.Key);
                 }
             }
         }

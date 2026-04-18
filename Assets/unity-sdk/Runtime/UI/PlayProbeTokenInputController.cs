@@ -1,25 +1,34 @@
+using System;
+using System.Text;
 using UnityEngine;
 using TMPro;
 using UnityEngine.EventSystems;
 using System.Text.RegularExpressions;
-using UnityEngine.InputSystem;
+using System.Threading.Tasks;
+using PlayProbe;
 using UnityEngine.UI;
+
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 public class PlayProbeTokenInputController : MonoBehaviour
 {
-    [Header("UI References")]
-    [Tooltip("Drag the 6 SingleInput fields here IN ORDER (left to right).")]
-    [SerializeField] private TMP_InputField[] inputFields = new TMP_InputField[6];
-    [SerializeField] private UnityEngine.UI.Button startButton;
+    [Header("UI References")] [Tooltip("Drag the 6 SingleInput fields here IN ORDER (left to right).")] [SerializeField]
+    private TMP_InputField[] inputFields = new TMP_InputField[8];
 
-    [Header("Token Settings")]
-    [Tooltip("Expected token length without the dash")]
-    private const int TokenLength = 6;
+    [SerializeField] private Button startButton;
+
+    [Tooltip("Start session input.")] [SerializeField]
+    private Button startSessionButton;
+
+    private const int TokenLength = 8;
 
     private void Start()
     {
         InitializeInputs();
         TryAutoFillFromClipboard();
+        startSessionButton.onClick.AddListener(OnStartSessionClicked);
     }
 
     private void InitializeInputs()
@@ -30,7 +39,7 @@ public class PlayProbeTokenInputController : MonoBehaviour
 
             // Force character limit to 1 per field
             inputFields[i].characterLimit = 1;
-            
+
             // Add listener for when the user types a character
             inputFields[i].onValueChanged.AddListener((value) => OnInputValueChanged(value, index));
         }
@@ -53,7 +62,7 @@ public class PlayProbeTokenInputController : MonoBehaviour
         if (cleanedToken.Length == TokenLength && Regex.IsMatch(cleanedToken, @"^[A-Z0-9]+$"))
         {
             FillAllFields(cleanedToken);
-            
+
             if (startButton != null) startButton.Select();
         }
         else
@@ -106,7 +115,7 @@ public class PlayProbeTokenInputController : MonoBehaviour
         if (WasBackspacePressedThisFrame())
         {
             GameObject currentSelected = EventSystem.current.currentSelectedGameObject;
-            
+
             if (currentSelected != null)
             {
                 // Find which input field currently has focus
@@ -119,8 +128,9 @@ public class PlayProbeTokenInputController : MonoBehaviour
                         {
                             FocusInput(i - 1);
                             // Clear the previous field so it's ready to be re-typed
-                            inputFields[i - 1].text = ""; 
+                            inputFields[i - 1].text = "";
                         }
+
                         break;
                     }
                 }
@@ -134,21 +144,69 @@ public class PlayProbeTokenInputController : MonoBehaviour
     private bool WasBackspacePressedThisFrame()
     {
         // 1. Check Legacy Input Manager
-        #if ENABLE_LEGACY_INPUT_MANAGER
+#if ENABLE_LEGACY_INPUT_MANAGER
         if (Input.GetKeyDown(KeyCode.Backspace))
         {
             return true;
         }
-        #endif
+#endif
 
         // 2. Check New Input System
-        #if ENABLE_INPUT_SYSTEM
+#if ENABLE_INPUT_SYSTEM
         if (Keyboard.current != null && Keyboard.current.backspaceKey.wasPressedThisFrame)
         {
             return true;
         }
-        #endif
+#endif
 
         return false;
+    }
+
+    private string GetHandOffToken()
+    {
+        StringBuilder tokenBuilder = new();
+        foreach (TMP_InputField input in inputFields)
+        {
+            tokenBuilder.Append(input.text);
+        }
+
+        return tokenBuilder.ToString();
+    }
+
+    private void OnStartSessionClicked()
+    {
+        startSessionButton.enabled = false;
+        TryToStartSession();
+    }
+
+    private async void TryToStartSession()
+    {
+        try
+        {
+            string token = GetHandOffToken();
+            if (token.Length < TokenLength)
+            {
+                startSessionButton.enabled = true;
+
+                return;
+            }
+
+            Task<bool> checkStatus = PlayProbeManager.Instance.CheckHandOffStatus(token);
+            await checkStatus;
+            if (checkStatus.Result)
+            {
+                PlayProbeManager.Instance.StartHandOffSession(token);
+                startSessionButton.enabled = true;
+            }
+            else
+            {
+                startSessionButton.enabled = true;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[PlayProbe] Failed to start session with token. Error: {e.Message}");
+            startSessionButton.enabled = true;
+        }
     }
 }

@@ -10,8 +10,8 @@ namespace PlayProbe.Data
     {
         public string session_id;
         public double duration_seconds;
-        public float avg_fps;
-        public float min_fps;
+        public double avg_fps;
+        public double min_fps;
         public List<SurveyResponse> survey_responses;
     }
 }

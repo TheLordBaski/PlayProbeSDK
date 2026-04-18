@@ -88,12 +88,12 @@ namespace PlayProbe.Editor
             
             if(GUILayout.Button("Test start session", GUILayout.Height(24f)))
             {
-                PlayProbeManager.StartSession(_config);
+                PlayProbeManagerOld.StartSession(_config);
             }
             
             if(GUILayout.Button("Test end session", GUILayout.Height(24f)))
             {
-                PlayProbeManager.EndSession(_config);
+                PlayProbeManagerOld.EndSession(_config);
             }
         }
 
@@ -140,18 +140,18 @@ namespace PlayProbe.Editor
 
         private static void CreateManagerInScene()
         {
-            PlayProbeManager existingManager = FindObjectOfType<PlayProbeManager>();
+            PlayProbeManagerOld existingManagerOld = FindObjectOfType<PlayProbeManagerOld>();
 
-            if (existingManager != null)
+            if (existingManagerOld != null)
             {
-                Selection.activeGameObject = existingManager.gameObject;
-                EditorGUIUtility.PingObject(existingManager.gameObject);
+                Selection.activeGameObject = existingManagerOld.gameObject;
+                EditorGUIUtility.PingObject(existingManagerOld.gameObject);
                 return;
             }
 
             GameObject managerObject = new GameObject("PlayProbeManager");
             Undo.RegisterCreatedObjectUndo(managerObject, "Create PlayProbeManager");
-            managerObject.AddComponent<PlayProbeManager>();
+            managerObject.AddComponent<PlayProbeManagerOld>();
             EditorSceneManager.MarkSceneDirty(managerObject.scene);
             Selection.activeGameObject = managerObject;
         }

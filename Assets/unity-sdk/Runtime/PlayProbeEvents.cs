@@ -210,7 +210,7 @@ namespace PlayProbe
             try
             {
                 string batchJson = SerializeBatch(batch);
-                await PlayProbeHttp.PostAsync("/rest/v1/sdk_events", batchJson);
+                await PlayProbeHttpOld.PostAsync("/rest/v1/sdk_events", batchJson);
 
                 lock (_bufferLock)
                 {

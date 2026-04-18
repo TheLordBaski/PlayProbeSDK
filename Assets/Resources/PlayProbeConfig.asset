@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22724c5d07e023c478e776b4665e6144, type: 3}
   m_Name: PlayProbeConfig
   m_EditorClassIdentifier: PlayProbeSDK::PlayProbe.PlayProbeConfig
-  shareToken: 167403ba-ed7c-4b87-a9f3-2c7efc97016c
-  gameId: 
+  shareToken: b7beacf2-1438-4743-9af8-895518ae25b4
+  isStandaloneTest: 0
   enableFpsTracking: 1
   enablePositionHeatmap: 0
   positionLogInterval: 5
