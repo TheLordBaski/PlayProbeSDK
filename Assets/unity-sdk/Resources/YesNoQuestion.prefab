@@ -211,6 +211,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7312966750154371083}
   - component: {fileID: 8987132250623042720}
+  - component: {fileID: 6073105299932410397}
   m_Layer: 5
   m_Name: YesNoQuestion
   m_TagString: Untagged
@@ -265,6 +266,20 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &6073105299932410397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7664118916748297795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2d4ff9171f63c1439051b6f298153ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PlayProbeSDK::PlayProbe.YesNoQuestion
+  yesButton: {fileID: 3543893857771289200}
+  noButton: {fileID: 5585928933792446345}
 --- !u!1001 &2658025890919355577
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -355,7 +370,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7835767381906184608, guid: 511c1ef52ee58bb4985de325bad24c2d, type: 3}
       propertyPath: m_Name
-      value: PlayProbeSelectableButton
+      value: YesButton
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -367,6 +382,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2991799150618934984, guid: 511c1ef52ee58bb4985de325bad24c2d, type: 3}
   m_PrefabInstance: {fileID: 2658025890919355577}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &3543893857771289200 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1570987543723208393, guid: 511c1ef52ee58bb4985de325bad24c2d, type: 3}
+  m_PrefabInstance: {fileID: 2658025890919355577}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b038887b01d662a4eb4f8d50e1dd2aff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PlayProbeSDK::PlayProbe.PlayProbeSelectableButton
 --- !u!1001 &6361457747634493760
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -461,13 +487,24 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7835767381906184608, guid: 511c1ef52ee58bb4985de325bad24c2d, type: 3}
       propertyPath: m_Name
-      value: PlayProbeSelectableButton (1)
+      value: NoButton
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 511c1ef52ee58bb4985de325bad24c2d, type: 3}
+--- !u!114 &5585928933792446345 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1570987543723208393, guid: 511c1ef52ee58bb4985de325bad24c2d, type: 3}
+  m_PrefabInstance: {fileID: 6361457747634493760}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b038887b01d662a4eb4f8d50e1dd2aff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PlayProbeSDK::PlayProbe.PlayProbeSelectableButton
 --- !u!224 &8200335171335874440 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2991799150618934984, guid: 511c1ef52ee58bb4985de325bad24c2d, type: 3}
