@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1612327717761919802}
   - component: {fileID: 7523751970608768458}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: Title
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -213,7 +213,7 @@ GameObject:
   - component: {fileID: 8987132250623042720}
   - component: {fileID: 6073105299932410397}
   m_Layer: 5
-  m_Name: YesNoQuestion
+  m_Name: PlayProbeYesNoQuestion
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -278,6 +278,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2d4ff9171f63c1439051b6f298153ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: PlayProbeSDK::PlayProbe.YesNoQuestion
+  title: {fileID: 7523751970608768458}
   yesButton: {fileID: 3543893857771289200}
   noButton: {fileID: 5585928933792446345}
 --- !u!1001 &2658025890919355577

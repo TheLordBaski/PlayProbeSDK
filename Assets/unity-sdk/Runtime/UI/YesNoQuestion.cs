@@ -1,9 +1,12 @@
+using TMPro;
 using UnityEngine;
 
 namespace PlayProbe
 {
     public class YesNoQuestion : MonoBehaviour
     {
+        [SerializeField] private TextMeshProUGUI title;
+        
         [SerializeField]
         private PlayProbeSelectableButton yesButton;
         
