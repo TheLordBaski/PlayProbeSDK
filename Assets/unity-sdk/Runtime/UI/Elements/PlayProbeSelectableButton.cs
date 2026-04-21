@@ -1,3 +1,5 @@
+// Copyright PlayProbe.io 2026. All rights reserved
+
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

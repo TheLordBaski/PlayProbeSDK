@@ -1,3 +1,5 @@
+// Copyright PlayProbe.io 2026. All rights reserved
+
 using System;
 using System.Text;
 using UnityEngine;
