@@ -28,7 +28,7 @@ namespace PlayProbe
         // Kept for compatibility with older SDK callers.
         public PlayProbeSession Session { get; private set; }
         public PlayProbeEvents Events { get; private set; }
-        public PlayProbeSurveyOld SurveyOld { get; private set; }
+        // public PlayProbeSurveyOld SurveyOld { get; private set; }
         public PlayProbeAnalytics Analytics { get; private set; }
 
         public string SessionId { get; private set; }
@@ -61,7 +61,7 @@ namespace PlayProbe
                 PlayProbeHttpOld.Configure(_runtimeConfig);
 
                 Events = new PlayProbeEvents(_runtimeConfig);
-                SurveyOld = new PlayProbeSurveyOld(_runtimeConfig, Events);
+                // SurveyOld = new PlayProbeSurveyOld(_runtimeConfig, Events);
                 Analytics = new PlayProbeAnalytics(_runtimeConfig, Events);
                 Session = null;
 
@@ -122,17 +122,17 @@ namespace PlayProbe
 
             List<SurveySchemaItem> surveySchema = new List<SurveySchemaItem>();
 
-            try
-            {
-                if (SurveyOld != null)
-                {
-                    surveySchema = SurveyOld.GetRegisteredSchema();
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[PlayProbe] Failed to read survey schema: " + ex.Message);
-            }
+            // try
+            // {
+                // if (SurveyOld != null)
+                // {
+                    // surveySchema = SurveyOld.GetRegisteredSchema();
+                // }
+            // }
+            // catch (Exception ex)
+            // {
+            //     Debug.LogWarning("[PlayProbe] Failed to read survey schema: " + ex.Message);
+            // }
 
             PlayProbeSdkSessionStartRequest payload = new PlayProbeSdkSessionStartRequest
             {
@@ -430,17 +430,17 @@ namespace PlayProbe
         {
             List<SurveyResponse> surveyResponses = new List<SurveyResponse>();
 
-            try
-            {
-                if (SurveyOld != null)
-                {
-                    surveyResponses = SurveyOld.GetBufferedResponses();
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[PlayProbe] Failed to collect buffered survey responses: " + ex.Message);
-            }
+            // try
+            // {
+            //     if (SurveyOld != null)
+            //     {
+            //         surveyResponses = SurveyOld.GetBufferedResponses();
+            //     }
+            // }
+            // catch (Exception ex)
+            // {
+            //     Debug.LogWarning("[PlayProbe] Failed to collect buffered survey responses: " + ex.Message);
+            // }
 
             double durationSeconds = 0d;
 
@@ -504,23 +504,23 @@ namespace PlayProbe
                     }
                 }
 
-                List<SurveyTrigger> surveyTriggers = new List<SurveyTrigger>();
+                List<SurveySchemaItem> surveyTriggers = new List<SurveySchemaItem>();
 
                 if (response != null && response.survey_triggers != null)
                 {
                     surveyTriggers.AddRange(response.survey_triggers);
                 }
 
-                ApplyQuestionMapToTriggers(surveyTriggers);
+                // ApplyQuestionMapToTriggers(surveyTriggers);
 
-                try
-                {
-                    SurveyOld?.LoadTriggers(surveyTriggers);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning("[PlayProbe] Failed to load survey triggers: " + ex.Message);
-                }
+                // try
+                // {
+                //     SurveyOld?.LoadTriggers(surveyTriggers);
+                // }
+                // catch (Exception ex)
+                // {
+                //     Debug.LogWarning("[PlayProbe] Failed to load survey triggers: " + ex.Message);
+                // }
 
                 return true;
             }

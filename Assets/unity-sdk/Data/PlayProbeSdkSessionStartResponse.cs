@@ -9,6 +9,6 @@ namespace PlayProbe.Data
     {
         public string session_id;
         public PlayProbeQuestionMapEntry[] question_map;
-        public SurveyTrigger[] survey_triggers;
+        public SurveySchemaItem[] survey_triggers;
     }
 }

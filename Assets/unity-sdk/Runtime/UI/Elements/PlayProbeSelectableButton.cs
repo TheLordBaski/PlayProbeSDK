@@ -47,5 +47,23 @@ namespace PlayProbe
             block.selectedColor = _unselectedColor;
             button.colors = block;
         }
+
+        public void SetLabel(string label)
+        {
+            if (buttonText == null)
+            {
+                Debug.LogWarning("[PlayProbe] PlayProbeSelectableButton is missing button text reference.");
+                return;
+            }
+
+            buttonText.SetText(label ?? string.Empty);
+        }
+
+        public void Hide()
+        {
+            button.gameObject.SetActive(false);
+            GetComponent<Outline>().enabled = false;
+            GetComponent<Image>().color = new Color(0, 0, 0, 0);
+        }
     }
 }

@@ -58,6 +58,8 @@ namespace PlayProbe
 
         #region Public methods
 
+        
+        //TODO: Add Application.logMessageReceived += HandleLogMessageReceived;
         public void StartSession()
         {
             if (string.IsNullOrWhiteSpace(_runtimeConfig.ShareToken))
