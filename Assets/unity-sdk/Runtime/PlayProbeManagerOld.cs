@@ -547,38 +547,7 @@ namespace PlayProbe
             }
         }
 
-        private void ApplyQuestionMapToTriggers(List<SurveyTrigger> surveyTriggers)
-        {
-            if (surveyTriggers == null || surveyTriggers.Count == 0 || _questionMap.Count == 0)
-            {
-                return;
-            }
-
-            for (int triggerIndex = 0; triggerIndex < surveyTriggers.Count; triggerIndex++)
-            {
-                SurveyTrigger trigger = surveyTriggers[triggerIndex];
-
-                if (trigger == null || trigger.questions == null)
-                {
-                    continue;
-                }
-
-                for (int questionIndex = 0; questionIndex < trigger.questions.Count; questionIndex++)
-                {
-                    SurveyQuestionData question = trigger.questions[questionIndex];
-
-                    if (question == null || !string.IsNullOrWhiteSpace(question.question_id) || string.IsNullOrWhiteSpace(question.sdk_question_id))
-                    {
-                        continue;
-                    }
-
-                    if (_questionMap.TryGetValue(question.sdk_question_id, out string mappedQuestionId))
-                    {
-                        question.question_id = mappedQuestionId;
-                    }
-                }
-            }
-        }
+        
 
         private void BuildRuntimeConfig()
         {

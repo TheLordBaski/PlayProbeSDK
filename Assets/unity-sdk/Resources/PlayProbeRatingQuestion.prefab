@@ -84,6 +84,7 @@ MonoBehaviour:
   - {fileID: 6988661598575225740}
   - {fileID: 8422758073810293298}
   - {fileID: 4593164740695967945}
+  isEmojiRating: 0
 --- !u!1 &3610429230496011930
 GameObject:
   m_ObjectHideFlags: 0
