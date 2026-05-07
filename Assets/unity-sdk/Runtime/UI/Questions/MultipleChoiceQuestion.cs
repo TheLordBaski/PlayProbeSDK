@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace PlayProbe
 {
-    public class MultipleChoiceQuestion : MonoBehaviour, IPlayProbeQuestionElement
+    internal class MultipleChoiceQuestion : MonoBehaviour, IPlayProbeQuestionElement
     {
         [SerializeField] private TextMeshProUGUI questionText;
 
@@ -18,16 +18,8 @@ namespace PlayProbe
         [SerializeField] private RectTransform answersContainer;
 
         private PlayProbeSelectableButton _selectableButton;
-        
-        private void Start()
-        {
-            InitQuestion(new SurveyQuestionSchema()
-            {
-                label = "What is your favorite color?",
-                options = new string[] { "Red", "Green", "Blue", "Yellow", "Purple" },
-            });
-        }
 
+        private SurveyQuestionSchema _schema;
 
         public void InitQuestion(SurveyQuestionSchema questionSchema)
         {
@@ -71,16 +63,25 @@ namespace PlayProbe
                 bool hasSecondOption = i + 1 < options.Length;
                 SpawnOptionButton(row, hasSecondOption ? options[i + 1] : string.Empty, hasSecondOption);
             }
+            _schema = questionSchema;
         }
 
-        public void GetAnswerData(SurveyResponse response)
+        public SurveyResponse GetAnswerData()
         {
-            throw new NotImplementedException();
+            if (!IsAnswerSelected())
+            {
+                return new SurveyResponse();
+            }
+            return new SurveyResponse
+            {
+                question_id = _schema.id,
+                value_choice = _selectableButton.GetLabel()
+            };
         }
 
         public bool IsAnswerSelected()
         {
-            throw new NotImplementedException();
+            return _selectableButton != null;
         }
 
         private void ClearAnswers()
@@ -119,6 +120,7 @@ namespace PlayProbe
                 optionButton.Hide();
             }
             optionButton.button.onClick.AddListener(() => OnOptionSelected(optionButton));
+            
         }
 
         private void OnOptionSelected(PlayProbeSelectableButton optionButton)

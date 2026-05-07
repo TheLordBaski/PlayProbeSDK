@@ -59,6 +59,11 @@ namespace PlayProbe
             buttonText.SetText(label ?? string.Empty);
         }
 
+        public string GetLabel()
+        {
+            return buttonText.text;
+        }
+
         public void Hide()
         {
             button.gameObject.SetActive(false);

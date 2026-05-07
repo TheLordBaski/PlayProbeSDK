@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using PlayProbe.Data;
 using UnityEngine;
@@ -21,6 +22,8 @@ namespace PlayProbe
         public bool IsSessionActive { get; private set; }
 
         public PlayProbeSurvey Survey { get; private set; }
+
+        public List<SurveySchemaItem> surveySchemaItems;
 
         #region Monobehaviour
 
@@ -58,7 +61,6 @@ namespace PlayProbe
 
         #region Public methods
 
-        
         //TODO: Add Application.logMessageReceived += HandleLogMessageReceived;
         public void StartSession()
         {
@@ -86,17 +88,18 @@ namespace PlayProbe
                 Debug.Log("[PlayProbe] The session is not active");
                 return;
             }
-            
+
             if (string.IsNullOrWhiteSpace(_runtimeConfig.SessionId))
             {
                 Debug.LogWarning("[PlayProbe] Session ID is empty. Session end skipped.");
                 return;
             }
+
             PlayProbeSdkSessionEndRequest endRequestPayload = new()
             {
                 session_id = _runtimeConfig.SessionId,
                 //TODO: load this data from analytics
-                duration_seconds = UnityEngine.Random.Range(10f,15f),
+                duration_seconds = UnityEngine.Random.Range(10f, 15f),
                 avg_fps = 57.0,
                 min_fps = 25,
                 survey_responses = Survey.GetSurveyResponses()
@@ -104,7 +107,7 @@ namespace PlayProbe
 
             EndSessionAsync(endRequestPayload);
         }
-        
+
         #endregion
 
         #region Private methods
@@ -242,7 +245,6 @@ namespace PlayProbe
                     Debug.LogWarning($"[PlayProbe] Could not parse Check token response: {ex.Message}");
                 }
             }
-
         }
 
         internal void StartHandOffSession(string handOffToken)
@@ -302,7 +304,7 @@ namespace PlayProbe
                     await request.SendWebRequest();
                     long statusCode = request.responseCode;
                     string responseBody = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
-                    Debug.Log(payloadJson);
+                    Debug.Log(responseBody);
                     if (request.result is UnityWebRequest.Result.ConnectionError
                         or UnityWebRequest.Result.ProtocolError)
                     {
@@ -323,6 +325,7 @@ namespace PlayProbe
                             PlayProbeSdkSessionStartResponse startResponse =
                                 JsonUtility.FromJson<PlayProbeSdkSessionStartResponse>(responseBody);
                             _runtimeConfig.SessionId = startResponse.session_id;
+                            surveySchemaItems = startResponse.survey_triggers.ToList();
                         }
                         catch (Exception ex)
                         {
@@ -344,6 +347,114 @@ namespace PlayProbe
         }
 
         #endregion
+
+        internal async void SubmitSurveyResponses(List<SurveyResponse> responses)
+        {
+            try
+            {
+                PlayProbeSurveySubmitRequest requestPayload = new()
+                {
+                    session_id = _runtimeConfig.SessionId,
+                    survey_responses = responses
+                };
+                string payloadJson;
+                try
+                {
+                    payloadJson = JsonUtility.ToJson(requestPayload);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[PlayProbe] Could not build mid-survey payload: {ex.Message}");
+                    IsSessionActive = false;
+                    return;
+                }
+
+                using (UnityWebRequest request =
+                       PlayProbeHttp.CreatePostRequest(GetEndpointAddressForFunction("sdk-mid-survey"), payloadJson))
+                {
+                    await request.SendWebRequest();
+                    long statusCode = request.responseCode;
+                    string responseBody = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
+                    Debug.Log(responseBody);
+                    if (request.result is UnityWebRequest.Result.ConnectionError
+                        or UnityWebRequest.Result.ProtocolError)
+                    {
+                        string requestError = request.error;
+                        Debug.LogWarning($"[PlayProbe] Survey submit request error: {requestError}");
+                    }
+                    else if (statusCode != 200)
+                    {
+                        Debug.LogWarning(
+                            $"[PlayProbe] Survey submit request failed with status code {statusCode} and response: {responseBody}");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            //     PlayProbeSdkSessionStartResponse startResponse =
+                            //         JsonUtility.FromJson<PlayProbeSdkSessionStartResponse>(responseBody);
+                            //     _runtimeConfig.SessionId = startResponse.session_id;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[PlayProbe] Could not parse Survey submit response: {ex.Message}");
+                            return;
+                        }
+
+                        Debug.Log("[PlayProbe] Survey submitted successfully.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[PlayProbe] Could not start session properly: {ex.Message}");
+                IsSessionActive = false;
+            }
+        }
+
+        public async void ShowSurvey(string trigger)
+        {
+            //spawn survey canvas
+            try
+            {
+                ResourceRequest handle = Resources.LoadAsync<GameObject>("PlayProbeSurveyCanvas");
+                await handle;
+
+                if (!handle.isDone || handle.asset == null)
+                {
+                    Debug.LogWarning($"[PlayProbe] Could not load survey prefab from Resources");
+                    return;
+                }
+
+                if (!(handle.asset is GameObject prefab))
+                {
+                    Debug.LogWarning($"[PlayProbe] Resource 'PlayProbeSurveyCanvas' is not a GameObject prefab.");
+                    return;
+                }
+
+                GameObject questionObject = Instantiate(prefab);
+                PlayProbeSurveyCanvas playProbeQuestionElement =
+                    questionObject.GetComponent<PlayProbeSurveyCanvas>();
+
+                if (playProbeQuestionElement == null)
+                {
+                    Debug.LogWarning(
+                        $"[PlayProbe] Prefab does not contain a component PlayProbeSurveyCanvas.");
+                    Destroy(questionObject);
+                    return;
+                }
+
+                SurveySchemaItem questionSchema = surveySchemaItems.FirstOrDefault(item => item.trigger_key == trigger);
+                if (questionSchema != null) playProbeQuestionElement.Initialize(questionSchema.questions);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning(
+                    $"[PlayProbe] Prefab 'PlayProbeSurveyCanvas' does not contain a component implementing IQuestionElement. {e}");
+            }
+            //show canvas
+            //pause game if needed
+        }
     }
 
     internal class PlayProbeRuntimeConfig

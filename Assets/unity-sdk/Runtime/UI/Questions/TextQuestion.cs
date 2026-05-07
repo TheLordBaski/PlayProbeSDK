@@ -9,20 +9,31 @@ namespace PlayProbe
     {
         [SerializeField] private TMP_InputField inputField;
         [SerializeField] private TextMeshProUGUI questionText;
+        private SurveyQuestionSchema _schema;
 
         public void InitQuestion(SurveyQuestionSchema questionSchema)
         {
             questionText.SetText(questionSchema.label);
+            _schema = questionSchema;
         }
 
-        public void GetAnswerData(SurveyResponse response)
+        public SurveyResponse GetAnswerData()
         {
-            throw new System.NotImplementedException();
+            if (!IsAnswerSelected())
+            {
+                return new SurveyResponse();
+            }
+
+            return new SurveyResponse()
+            {
+                question_id = _schema.id,
+                value_text = inputField.text
+            };
         }
 
         public bool IsAnswerSelected()
         {
-            throw new System.NotImplementedException();
+            return inputField.text != null && inputField.text.Length > 0;
         }
     }
 }

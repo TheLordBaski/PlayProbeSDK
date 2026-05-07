@@ -7,6 +7,7 @@ namespace PlayProbe.Data
     [Serializable]
     public class SurveyQuestionSchema
     {
+        public string id;
         public string sdk_question_id;
         /// <summary>
         /// "rating" | "yes_no" | "text" | "multiple_choice" | "emoji_scale";

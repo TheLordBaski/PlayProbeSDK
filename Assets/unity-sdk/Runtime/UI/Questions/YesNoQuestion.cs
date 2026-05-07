@@ -20,6 +20,8 @@ namespace PlayProbe
 
 
         private PlayProbeSelectableButton _selectedAnswer;
+        private SurveyQuestionSchema _schema;
+
         private void Start()
         {
              yesButton.button.onClick.AddListener(() => OnAnswerSelected(yesButton));
@@ -39,16 +41,26 @@ namespace PlayProbe
         public void InitQuestion(SurveyQuestionSchema questionSchema)
         {
             title.SetText(questionSchema.label);
+            _schema = questionSchema;
         }
 
-        public void GetAnswerData(SurveyResponse response)
+        public SurveyResponse GetAnswerData()
         {
-            throw new System.NotImplementedException();
+            if (!IsAnswerSelected())
+            {
+                return new SurveyResponse();
+            }
+
+            return new SurveyResponse()
+            {
+                question_id = _schema.id,
+                value_choice = _selectedAnswer == yesButton ? "Yes" : "No"
+            };
         }
 
         public bool IsAnswerSelected()
         {
-            throw new System.NotImplementedException();
+            return _selectedAnswer != null;
         }
     }
 }

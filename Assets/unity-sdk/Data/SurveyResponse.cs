@@ -9,7 +9,7 @@ namespace PlayProbe.Data
     {
         public string question_id;
         public string value_text;
-        public float? value_number;
+        public double value_number;
         public string value_choice;
     }
 }

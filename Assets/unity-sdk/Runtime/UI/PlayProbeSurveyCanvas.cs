@@ -15,21 +15,14 @@ namespace PlayProbe
         [SerializeField] private Button submitButton;
         [SerializeField] private Button skipButton;
         
+        private List<IPlayProbeQuestionElement> _questionElements = new();
         
-        //TODO: remove, just for testing
         private void Start()
         {
-            PlayProbeSurvey survey = new PlayProbeSurvey(null);
-            survey.Register("level_1")
-                .AddRating("How would you rate this level?", "level_1_rating")
-                .AddMultipleChoice(
-                    "Which part did you like the most?", "level_1_favorite_part",
-                    new[] { "Enemies", "Graphics", "Sound", "Gameplay" })
-                .AddYesNo("Did you find any bugs?", "level_1_found_bugs")
-                .AddText("Any additional feedback?", "level_1_additional_feedback")
-                .AddEmojiScale("How did this level make you feel?", "level_1_emotion");
-            Initialize(survey.GetRegisteredSurveySchema()[0].questions);
+            submitButton.onClick.AddListener(OnSubmit);
+            skipButton.onClick.AddListener(OnSkip);
         }
+
 
         internal void Initialize(List<SurveyQuestionSchema> surveySchemaItem)
         {
@@ -96,12 +89,38 @@ namespace PlayProbe
                 }
 
                 playProbeQuestionElement.InitQuestion(questionSchema);
+                _questionElements.Add(playProbeQuestionElement);
             }
             catch (Exception e)
             {
                 Debug.LogWarning(
-                    $"[PlayProbe] Prefab '{resourcePath}' does not contain a component implementing IQuestionElement.");
+                    $"[PlayProbe] Prefab '{resourcePath}' does not contain a component implementing IQuestionElement. {e}");
             }
+        }
+        
+        
+        private void OnSkip()
+        {
+            
+        }
+
+        private void OnSubmit()
+        {
+            foreach(IPlayProbeQuestionElement questionElement in _questionElements)
+            {
+                if (!questionElement.IsAnswerSelected())
+                {
+                    Debug.Log("[PlayProbe] Not all questions have been answered.");
+                    return;
+                }
+            }
+            List<SurveyResponse> responses = new();
+            foreach (IPlayProbeQuestionElement questionElement in _questionElements)
+            {
+                responses.Add(questionElement.GetAnswerData());
+                Debug.Log(JsonUtility.ToJson(questionElement.GetAnswerData()));
+            }
+            PlayProbeManager.Instance.SubmitSurveyResponses(responses);
         }
     }
 }

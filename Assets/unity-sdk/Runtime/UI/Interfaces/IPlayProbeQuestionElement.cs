@@ -6,7 +6,7 @@ namespace PlayProbe.Interfaces
     {
         void InitQuestion(SurveyQuestionSchema questionSchema);
 
-        void GetAnswerData(SurveyResponse response);
+        SurveyResponse GetAnswerData();
         
         bool IsAnswerSelected();
     }

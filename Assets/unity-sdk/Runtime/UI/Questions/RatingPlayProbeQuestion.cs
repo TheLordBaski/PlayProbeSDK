@@ -1,5 +1,6 @@
 // Copyright PlayProbe.io 2026. All rights reserved
 
+using System.Collections.Generic;
 using PlayProbe.Data;
 using PlayProbe.Interfaces;
 using TMPro;
@@ -11,11 +12,13 @@ namespace PlayProbe
     {
         [SerializeField] private TextMeshProUGUI question;
         
-        [SerializeField] private PlayProbeSelectableButton[] ratingButtons;
+        [SerializeField] private List<PlayProbeSelectableButton> ratingButtons;
 
         [SerializeField] private bool isEmojiRating;
 
         private PlayProbeSelectableButton _selectedAnswer;
+        private SurveyQuestionSchema _schema;
+
         private void Start()
         {
             foreach (PlayProbeSelectableButton ratingButton in ratingButtons)
@@ -56,16 +59,26 @@ namespace PlayProbe
         public void InitQuestion(SurveyQuestionSchema questionSchema)
         {
             question.SetText(questionSchema.label ?? string.Empty);
+            _schema = questionSchema;
         }
 
-        public void GetAnswerData(SurveyResponse response)
+        public SurveyResponse GetAnswerData()
         {
-            throw new System.NotImplementedException();
+            if (!IsAnswerSelected())
+            {
+                return new SurveyResponse();
+            }
+
+            return new SurveyResponse()
+            {
+                question_id = _schema.id,
+                value_number =  ratingButtons.IndexOf(_selectedAnswer) + 1
+            };
         }
 
         public bool IsAnswerSelected()
         {
-            throw new System.NotImplementedException();
+            return _selectedAnswer  != null;
         }
     }
 }
