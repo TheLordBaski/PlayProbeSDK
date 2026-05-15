@@ -118,7 +118,6 @@ namespace PlayProbe
             foreach (IPlayProbeQuestionElement questionElement in _questionElements)
             {
                 responses.Add(questionElement.GetAnswerData());
-                Debug.Log(JsonUtility.ToJson(questionElement.GetAnswerData()));
             }
             PlayProbeManager.Instance.SubmitSurveyResponses(responses);
         }

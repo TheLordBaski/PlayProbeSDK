@@ -1,322 +1,40 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
 using System.Threading.Tasks;
+using PlayProbe.Data;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace PlayProbe
 {
-    [Serializable]
-    public class SdkEventPayloadOld
-    {
-        
-        public string session_id;
-        public string event_type;
-        public string event_name;
-        public float? value_num;
-        public string value_text;
-        public string value_json;
-        public string timestamp;
-    }
-
-    [Serializable]
-    public class SdkEventPayload
-    {
-
-        public string session_id;
-        public List<SdkEvent> events;
-    }
-
-    [Serializable]
-    public class SdkEvent
-    {
-        public string event_type;
-        public string event_name;
-        public double value_num;
-        public string value_text;
-        public string value_json;
-        public string timestamp;
-    }
-
-    [Serializable]
-    internal class PlayProbePositionPayload
-    {
-        public float x;
-        public float y;
-        public float z;
-        public string tag;
-    }
-
-    [Serializable]
-    internal class PlayProbeDictionaryEntry
-    {
-        public string key;
-        public string value;
-    }
-
-    [Serializable]
-    internal class PlayProbeDictionaryPayload
-    {
-        public List<PlayProbeDictionaryEntry> entries = new List<PlayProbeDictionaryEntry>();
-    }
-
     public class PlayProbeEvents
     {
-        private const int FLUSH_THRESHOLD = 20;
-        private const float FLUSH_INTERVAL = 30f;
-        private const int MAX_RETRIES = 3;
+        private const float FLushInterval = 30f;
+        private const int FlushThreshold = 20;
+        private const int MaxRetries = 3;
 
-        private readonly PlayProbeConfig _config;
+        private PlayProbeRuntimeConfig _runtimeConfig;
+
+
         private readonly object _bufferLock = new object();
-        private readonly List<SdkEventPayloadOld> _buffer = new List<SdkEventPayloadOld>();
 
-        private MonoBehaviour _runner;
+        private readonly List<PlayProbeEvent> _eventBuffer = new();
         private Coroutine _flushCoroutine;
+
         private bool _isFlushing;
         private int _retryCount;
         private bool _logHandlerRegistered;
 
-        public string SessionId { get; set; }
 
-        public PlayProbeEvents(PlayProbeConfig config)
+        internal PlayProbeEvents(PlayProbeRuntimeConfig runtimeConfig)
         {
-            _config = config;
+            _runtimeConfig = runtimeConfig;
             RegisterCrashHandlerIfNeeded();
-        }
-
-        public void StartAutoFlush(MonoBehaviour runner)
-        {
-            if (runner == null || _flushCoroutine != null)
-            {
-                return;
-            }
-
-            _runner = runner;
-            _flushCoroutine = runner.StartCoroutine(FlushTimerLoop());
-        }
-
-        public void StopAutoFlush()
-        {
-            if (_runner != null && _flushCoroutine != null)
-            {
-                _runner.StopCoroutine(_flushCoroutine);
-            }
-
-            _flushCoroutine = null;
-            _runner = null;
-
-            if (_logHandlerRegistered)
-            {
-                Application.logMessageReceived -= HandleUnityLog;
-                _logHandlerRegistered = false;
-            }
-        }
-
-        public void LogEvent(string eventName, float? value = null)
-        {
-            if (string.IsNullOrWhiteSpace(eventName))
-            {
-                return;
-            }
-
-            SdkEventPayloadOld payloadOld = new SdkEventPayloadOld
-            {
-                session_id = SessionId,
-                event_type = "custom",
-                event_name = eventName,
-                value_num = value,
-                timestamp = DateTime.UtcNow.ToString("o")
-            };
-
-            Enqueue(payloadOld);
-        }
-
-        public void LogEvent(string eventName, Dictionary<string, object> data)
-        {
-            if (string.IsNullOrWhiteSpace(eventName))
-            {
-                return;
-            }
-
-            SdkEventPayloadOld payloadOld = new SdkEventPayloadOld
-            {
-                session_id = SessionId,
-                event_type = "custom",
-                event_name = eventName,
-                value_json = SerializeDictionary(data),
-                timestamp = DateTime.UtcNow.ToString("o")
-            };
-
-            Enqueue(payloadOld);
-        }
-
-        public void LogException(Exception exception)
-        {
-            LogExceptionInternal(exception, exception != null ? exception.StackTrace : string.Empty);
-        }
-
-        public void LogPosition(Vector3 position, string tag = null)
-        {
-            PlayProbePositionPayload positionData = new PlayProbePositionPayload
-            {
-                x = position.x,
-                y = position.y,
-                z = position.z,
-                tag = tag
-            };
-
-            SdkEventPayloadOld payloadOld = new SdkEventPayloadOld
-            {
-                session_id = SessionId,
-                event_type = "position",
-                value_json = JsonUtility.ToJson(positionData),
-                timestamp = DateTime.UtcNow.ToString("o")
-            };
-
-            Enqueue(payloadOld);
-        }
-
-        internal void LogFps(float fps)
-        {
-            SdkEventPayloadOld payloadOld = new SdkEventPayloadOld
-            {
-                session_id = SessionId,
-                event_type = "fps",
-                event_name = "fps_sample",
-                value_num = fps,
-                timestamp = DateTime.UtcNow.ToString("o")
-            };
-
-            Enqueue(payloadOld);
-        }
-
-        public async Task FlushAsync()
-        {
-            List<SdkEventPayloadOld> batch;
-
-            lock (_bufferLock)
-            {
-                if (_isFlushing || _buffer.Count == 0)
-                {
-                    return;
-                }
-
-                _isFlushing = true;
-                batch = new List<SdkEventPayloadOld>(_buffer);
-            }
-
-            try
-            {
-                string batchJson = SerializeBatch(batch);
-                await PlayProbeHttpOld.PostAsync("/rest/v1/sdk_events", batchJson);
-
-                lock (_bufferLock)
-                {
-                    int removeCount = Mathf.Min(batch.Count, _buffer.Count);
-                    _buffer.RemoveRange(0, removeCount);
-                    _retryCount = 0;
-                }
-            }
-            catch (Exception ex)
-            {
-                bool shouldDrop;
-                int droppedCount = 0;
-
-                lock (_bufferLock)
-                {
-                    _retryCount++;
-                    shouldDrop = _retryCount >= MAX_RETRIES;
-
-                    if (shouldDrop)
-                    {
-                        droppedCount = _buffer.Count;
-                        _buffer.Clear();
-                        _retryCount = 0;
-                    }
-                }
-
-                Debug.LogWarning("[PlayProbe] Failed to flush sdk events: " + ex.Message);
-
-                if (shouldDrop)
-                {
-                    Debug.LogWarning("[PlayProbe] Dropped " + droppedCount + " buffered sdk events after 3 retries.");
-                }
-            }
-            finally
-            {
-                lock (_bufferLock)
-                {
-                    _isFlushing = false;
-                }
-            }
-        }
-
-        public Task FlushPendingEvents()
-        {
-            return FlushAsync();
-        }
-
-        public int PendingCount
-        {
-            get
-            {
-                lock (_bufferLock)
-                {
-                    return _buffer.Count;
-                }
-            }
-        }
-
-        private IEnumerator FlushTimerLoop()
-        {
-            while (true)
-            {
-                yield return new WaitForSeconds(FLUSH_INTERVAL);
-
-                Task flushTask = FlushAsync();
-                while (!flushTask.IsCompleted)
-                {
-                    yield return null;
-                }
-            }
-        }
-
-        private void Enqueue(SdkEventPayloadOld payloadOld)
-        {
-            if (payloadOld == null)
-            {
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(payloadOld.session_id))
-            {
-                payloadOld.session_id = SessionId;
-            }
-
-            if (string.IsNullOrWhiteSpace(payloadOld.timestamp))
-            {
-                payloadOld.timestamp = DateTime.UtcNow.ToString("o");
-            }
-
-            bool shouldFlush;
-
-            lock (_bufferLock)
-            {
-                _buffer.Add(payloadOld);
-                shouldFlush = _buffer.Count >= FLUSH_THRESHOLD;
-            }
-
-            if (shouldFlush)
-            {
-                _ = FlushAsync();
-            }
         }
 
         private void RegisterCrashHandlerIfNeeded()
         {
-            if (_config == null || !_config.enableCrashReporting || _logHandlerRegistered)
+            if (_runtimeConfig == null || !_runtimeConfig.EnableCrashReporting || _logHandlerRegistered)
             {
                 return;
             }
@@ -340,69 +58,173 @@ namespace PlayProbe
             string exceptionType = exception != null ? exception.GetType().Name : "Exception";
             string exceptionMessage = exception != null ? exception.Message : string.Empty;
 
-            SdkEventPayloadOld payloadOld = new SdkEventPayloadOld
+            PlayProbeEvent payload = new()
             {
-                session_id = SessionId,
                 event_type = "exception",
-                value_text = exceptionType + ": " + exceptionMessage,
+                event_name = exceptionType,
+                value_text = exceptionMessage,
                 value_json = string.IsNullOrWhiteSpace(stackTrace) ? string.Empty : stackTrace,
                 timestamp = DateTime.UtcNow.ToString("o")
             };
 
-            Enqueue(payloadOld);
+            Enqueue(payload);
         }
 
-        private static string SerializeDictionary(Dictionary<string, object> data)
+        private void Enqueue(PlayProbeEvent payload)
         {
-            PlayProbeDictionaryPayload payload = new PlayProbeDictionaryPayload();
-
-            if (data != null)
+            if (payload == null)
             {
-                foreach (KeyValuePair<string, object> pair in data)
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(payload.timestamp))
+            {
+                payload.timestamp = DateTime.UtcNow.ToString("o");
+            }
+
+            bool shouldFlush;
+
+            lock (_bufferLock)
+            {
+                _eventBuffer.Add(payload);
+                shouldFlush = _eventBuffer.Count >= FlushThreshold;
+            }
+
+            if (shouldFlush)
+            {
+                _ = FlushAsync();
+            }
+        }
+
+        private async Task FlushAsync()
+        {
+            List<PlayProbeEvent> batch;
+
+            lock (_bufferLock)
+            {
+                if (_isFlushing || _eventBuffer.Count == 0)
                 {
-                    payload.entries.Add(new PlayProbeDictionaryEntry
+                    return;
+                }
+
+                _isFlushing = true;
+                batch = new List<PlayProbeEvent>(_eventBuffer);
+            }
+
+            PlayProbeEventPayload payload = new()
+            {
+                session_id = _runtimeConfig.SessionId,
+                events = batch
+            };
+            string payloadJson;
+            try
+            {
+                payloadJson = JsonUtility.ToJson(payload);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[PlayProbe] Failed to serialize event payload: {ex}");
+                return;
+            }
+
+            try
+            {
+                using (UnityWebRequest request =
+                       PlayProbeHttp.CreatePostRequest(
+                           PlayProbeManager.Instance.GetEndpointAddressForFunction("sdk_events"), payloadJson))
+                {
+                    await request.SendWebRequest();
+                    long statusCode = request.responseCode;
+                    string responseBody = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
+                    if (request.result is UnityWebRequest.Result.ConnectionError
+                        or UnityWebRequest.Result.ProtocolError)
                     {
-                        key = pair.Key,
-                        value = ConvertValueToString(pair.Value)
-                    });
+                        string requestError = request.error;
+                        Debug.LogWarning($"[PlayProbe] Event request error: {requestError}");
+                        return;
+                    }
+
+                    if (statusCode != 200)
+                    {
+                        Debug.LogWarning(
+                            $"[PlayProbe]  Event request failed with status code {statusCode} and response: {responseBody}");
+                        return;
+                    }
+
+                    lock (_bufferLock)
+                    {
+                        int removeCount = Mathf.Min(batch.Count, _eventBuffer.Count);
+                        _eventBuffer.RemoveRange(0, removeCount);
+                        _retryCount = 0;
+                    }
                 }
             }
-
-            return JsonUtility.ToJson(payload);
-        }
-
-        private static string ConvertValueToString(object value)
-        {
-            if (value == null)
+            catch (Exception ex)
             {
-                return string.Empty;
-            }
+                bool shouldDrop;
+                int droppedCount = 0;
 
-            if (value is IFormattable formattable)
-            {
-                return formattable.ToString(null, CultureInfo.InvariantCulture);
-            }
-
-            return value.ToString();
-        }
-
-        private static string SerializeBatch(List<SdkEventPayloadOld> events)
-        {
-            StringBuilder builder = new StringBuilder();
-            builder.Append('[');
-
-            for (int index = 0; index < events.Count; index++)
-            {
-                if (index > 0)
+                lock (_bufferLock)
                 {
-                    builder.Append(',');
+                    _retryCount++;
+                    shouldDrop = _retryCount >= MaxRetries;
+
+                    if (shouldDrop)
+                    {
+                        droppedCount = _eventBuffer.Count;
+                        _eventBuffer.Clear();
+                        _retryCount = 0;
+                    }
                 }
 
-                builder.Append(JsonUtility.ToJson(events[index]));
-            }
+                Debug.LogWarning("[PlayProbe] Failed to flush sdk events: " + ex.Message);
 
-            builder.Append(']');
-            return builder.ToString();
+                if (shouldDrop)
+                {
+                    Debug.LogWarning("[PlayProbe] Dropped " + droppedCount + " buffered sdk events after 3 retries.");
+                }
+            }
+            finally
+            {
+                lock (_bufferLock)
+                {
+                    _isFlushing = false;
+                }
+            }
+        }
+        
+        internal void LogFps(float fps)
+        {
+            PlayProbeEvent payload = new ()
+            {
+                event_type = "fps",
+                event_name = "fps_sample",
+                value_num = fps,
+                timestamp = DateTime.UtcNow.ToString("o")
+            };
+
+            Enqueue(payload);
+        }
+        
+        public void LogPosition(Vector3 position, string name, string tag = null)
+        {
+            PlayProbePositionPayload positionData = new()
+            {
+                x = position.x,
+                y = position.y,
+                z = position.z,
+                tag = tag
+            };
+
+            PlayProbeEvent payload = new()
+            {
+                event_type = "position",
+                event_name = name,
+                value_json = JsonUtility.ToJson(positionData),
+                timestamp = DateTime.UtcNow.ToString("o")
+            };
+
+            Enqueue(payload);
         }
     }
 }

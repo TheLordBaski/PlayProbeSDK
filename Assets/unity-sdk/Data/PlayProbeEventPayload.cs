@@ -6,8 +6,10 @@ using System.Collections.Generic;
 namespace PlayProbe.Data
 {
     [Serializable]
-    internal class PlayProbeDictionaryPayload
+    public class PlayProbeEventPayload
     {
-        public List<PlayProbeDictionaryEntry> entries = new List<PlayProbeDictionaryEntry>();
+
+        public string session_id;
+        public List<PlayProbeEvent> events;
     }
 }

@@ -5,7 +5,7 @@ using System;
 namespace PlayProbe.Data
 {
     [Serializable]
-    public class SdkEvent
+    public class PlayProbeEvent
     {
         public string event_type;
         public string event_name;

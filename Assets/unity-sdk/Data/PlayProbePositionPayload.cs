@@ -5,7 +5,7 @@ using System;
 namespace PlayProbe.Data
 {
     [Serializable]
-    internal class PlayProbePositionPayload
+    public class PlayProbePositionPayload
     {
         public float x;
         public float y;

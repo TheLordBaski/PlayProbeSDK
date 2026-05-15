@@ -22,6 +22,8 @@ namespace PlayProbe
         public bool IsSessionActive { get; private set; }
 
         public PlayProbeSurvey Survey { get; private set; }
+        
+        internal PlayProbeEvents Events { get; private set; }
 
         public List<SurveySchemaItem> surveySchemaItems;
 
@@ -43,6 +45,7 @@ namespace PlayProbe
                 BuildRuntimeConfig();
 
                 Survey = new PlayProbeSurvey(_runtimeConfig);
+                Events = new PlayProbeEvents(_runtimeConfig);
             }
             catch (Exception exception)
             {
@@ -127,7 +130,7 @@ namespace PlayProbe
             };
         }
 
-        private string GetEndpointAddressForFunction(string edgeFunction)
+        internal string GetEndpointAddressForFunction(string edgeFunction)
         {
             return _runtimeConfig != null ? $"{PlayProbeRuntimeConfig.ApiEndpoint}{edgeFunction}" : null;
         }
@@ -375,7 +378,6 @@ namespace PlayProbe
                     await request.SendWebRequest();
                     long statusCode = request.responseCode;
                     string responseBody = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
-                    Debug.Log(responseBody);
                     if (request.result is UnityWebRequest.Result.ConnectionError
                         or UnityWebRequest.Result.ProtocolError)
                     {
@@ -389,18 +391,6 @@ namespace PlayProbe
                     }
                     else
                     {
-                        try
-                        {
-                            //     PlayProbeSdkSessionStartResponse startResponse =
-                            //         JsonUtility.FromJson<PlayProbeSdkSessionStartResponse>(responseBody);
-                            //     _runtimeConfig.SessionId = startResponse.session_id;
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogWarning($"[PlayProbe] Could not parse Survey submit response: {ex.Message}");
-                            return;
-                        }
-
                         Debug.Log("[PlayProbe] Survey submitted successfully.");
                     }
                 }

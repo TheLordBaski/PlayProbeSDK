@@ -33,9 +33,14 @@ public class SdkTestController : MonoBehaviour
         {
             base.OnInspectorGUI();
             SdkTestController controller = (SdkTestController)target;
-            if (GUILayout.Button("Simulate Survey Completion"))
+            if (GUILayout.Button("Show Level 1 survey"))
             {
                 PlayProbeManager.Instance.ShowSurvey("level_1");
+            }
+            
+            if (GUILayout.Button("Show Level 2 survey"))
+            {
+                PlayProbeManager.Instance.ShowSurvey("level_2");
             }
         }
     }

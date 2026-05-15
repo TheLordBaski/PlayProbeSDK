@@ -85,16 +85,6 @@ namespace PlayProbe.Editor
             {
                 Application.OpenURL("https://playprobe.io/dashboard");
             }
-            
-            if(GUILayout.Button("Test start session", GUILayout.Height(24f)))
-            {
-                PlayProbeManagerOld.StartSession(_config);
-            }
-            
-            if(GUILayout.Button("Test end session", GUILayout.Height(24f)))
-            {
-                PlayProbeManagerOld.EndSession(_config);
-            }
         }
 
         private void DrawProperty(string propertyName, string label)
@@ -140,7 +130,7 @@ namespace PlayProbe.Editor
 
         private static void CreateManagerInScene()
         {
-            PlayProbeManagerOld existingManagerOld = FindObjectOfType<PlayProbeManagerOld>();
+            PlayProbeManager existingManagerOld = FindObjectOfType<PlayProbeManager>();
 
             if (existingManagerOld != null)
             {
@@ -151,7 +141,7 @@ namespace PlayProbe.Editor
 
             GameObject managerObject = new GameObject("PlayProbeManager");
             Undo.RegisterCreatedObjectUndo(managerObject, "Create PlayProbeManager");
-            managerObject.AddComponent<PlayProbeManagerOld>();
+            managerObject.AddComponent<PlayProbeManager>();
             EditorSceneManager.MarkSceneDirty(managerObject.scene);
             Selection.activeGameObject = managerObject;
         }

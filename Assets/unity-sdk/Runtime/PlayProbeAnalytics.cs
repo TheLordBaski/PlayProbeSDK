@@ -21,21 +21,16 @@ namespace PlayProbe
         public float MinFps => _minFps == float.MaxValue ? 0f : _minFps;
         public bool HasFpsSamples => _fpsSampleCount > 0;
 
-        public PlayProbeAnalytics(PlayProbeConfig config, PlayProbeEvents events)
+        public PlayProbeAnalytics(PlayProbeConfig config)
         {
             _config = config;
         }
 
-        public void StartTracking(PlayProbeConfig config)
+        internal void StartTracking()
         {
-            if (config != null)
-            {
-                _config = config;
-            }
+            PlayProbeManager manager = PlayProbeManager.Instance;
 
-            PlayProbeManagerOld managerOld = PlayProbeManagerOld.Instance;
-
-            if (managerOld == null)
+            if (manager == null)
             {
                 Debug.LogWarning("[PlayProbe] StartTracking failed because PlayProbeManager.Instance is null.");
                 return;
@@ -47,19 +42,19 @@ namespace PlayProbe
             _fpsSampleCount = 0;
             _minFps = float.MaxValue;
 
-            _fpsCoroutine = managerOld.StartCoroutine(TrackFps());
+            _fpsCoroutine = manager.StartCoroutine(TrackFps());
 
             if (_config != null && _config.enablePositionHeatmap)
             {
-                _positionCoroutine = managerOld.StartCoroutine(TrackPositions());
+                _positionCoroutine = manager.StartCoroutine(TrackPositions());
             }
         }
 
         public void StopTracking()
         {
-            PlayProbeManagerOld managerOld = PlayProbeManagerOld.Instance;
+            PlayProbeManager manager = PlayProbeManager.Instance;
 
-            if (managerOld == null)
+            if (manager == null)
             {
                 _fpsCoroutine = null;
                 _positionCoroutine = null;
@@ -68,13 +63,13 @@ namespace PlayProbe
 
             if (_fpsCoroutine != null)
             {
-                managerOld.StopCoroutine(_fpsCoroutine);
+                manager.StopCoroutine(_fpsCoroutine);
                 _fpsCoroutine = null;
             }
 
             if (_positionCoroutine != null)
             {
-                managerOld.StopCoroutine(_positionCoroutine);
+                manager.StopCoroutine(_positionCoroutine);
                 _positionCoroutine = null;
             }
         }
@@ -124,14 +119,15 @@ namespace PlayProbe
 
                 if (_fpsSampleCount % 10 == 0)
                 {
-                    PlayProbeManagerOld managerOld = PlayProbeManagerOld.Instance;
+                    PlayProbeManager manager = PlayProbeManager.Instance;
 
-                    if (managerOld != null && managerOld.Events != null)
+                    if (manager != null && manager.Events != null)
                     {
-                        managerOld.Events.LogFps(currentFps);
+                        manager.Events.LogFps(currentFps);
                     }
                 }
             }
+            yield break;
         }
 
         private IEnumerator TrackPositions()
@@ -147,16 +143,16 @@ namespace PlayProbe
 
                 yield return new WaitForSeconds(interval);
 
-                PlayProbeManagerOld managerOld = PlayProbeManagerOld.Instance;
+                PlayProbeManager manager = PlayProbeManager.Instance;
 
-                if (managerOld == null || managerOld.Events == null)
+                if (manager == null || manager.Events == null)
                 {
                     continue;
                 }
 
                 if (_trackedTransform != null)
                 {
-                    managerOld.Events.LogPosition(_trackedTransform.position);
+                    manager.Events.LogPosition(_trackedTransform.position, _trackedTransform.name);
                 }
 
                 foreach (KeyValuePair<string, Transform> tracked in _trackedObjects)
@@ -166,9 +162,10 @@ namespace PlayProbe
                         continue;
                     }
 
-                    managerOld.Events.LogPosition(tracked.Value.position, tracked.Key);
+                    manager.Events.LogPosition(tracked.Value.position, tracked.Value.name, tracked.Key);
                 }
             }
+            yield break;
         }
     }
 }
