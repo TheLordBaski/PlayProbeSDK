@@ -7,6 +7,7 @@ namespace PlayProbe.Data
     public class PlayProbeSurveySubmitRequest
     {
         public string session_id;
+        public string session_token;
         public List<SurveyResponse> survey_responses;
     }
 }

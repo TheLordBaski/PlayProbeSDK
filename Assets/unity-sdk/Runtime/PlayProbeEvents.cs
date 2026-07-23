@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PlayProbe.Data;
@@ -24,6 +25,14 @@ namespace PlayProbe
         private bool _isFlushing;
         private int _retryCount;
         private bool _logHandlerRegistered;
+
+        // sdk-events requires value_json to be a JSON object (or null); a raw stack-trace string is
+        // rejected and fails the whole batch, so exception stacks are wrapped in an object.
+        [Serializable]
+        private class ExceptionEventDetail
+        {
+            public string stack_trace;
+        }
 
 
         internal PlayProbeEvents(PlayProbeRuntimeConfig runtimeConfig)
@@ -63,7 +72,9 @@ namespace PlayProbe
                 event_type = "exception",
                 event_name = exceptionType,
                 value_text = exceptionMessage,
-                value_json = string.IsNullOrWhiteSpace(stackTrace) ? string.Empty : stackTrace,
+                value_json = string.IsNullOrWhiteSpace(stackTrace)
+                    ? string.Empty
+                    : JsonUtility.ToJson(new ExceptionEventDetail { stack_trace = stackTrace }),
                 timestamp = DateTime.UtcNow.ToString("o")
             };
 
@@ -114,6 +125,7 @@ namespace PlayProbe
             PlayProbeEventPayload payload = new()
             {
                 session_id = _runtimeConfig.SessionId,
+                session_token = _runtimeConfig.SessionToken,
                 events = batch
             };
             string payloadJson;
@@ -131,7 +143,7 @@ namespace PlayProbe
             {
                 using (UnityWebRequest request =
                        PlayProbeHttp.CreatePostRequest(
-                           PlayProbeManager.Instance.GetEndpointAddressForFunction("sdk_events"), payloadJson))
+                           PlayProbeManager.Instance.GetEndpointAddressForFunction("sdk-events"), payloadJson))
                 {
                     await request.SendWebRequest();
                     long statusCode = request.responseCode;
@@ -193,6 +205,47 @@ namespace PlayProbe
             }
         }
         
+        internal void StartFlushLoop()
+        {
+            PlayProbeManager manager = PlayProbeManager.Instance;
+
+            if (manager == null || _flushCoroutine != null)
+            {
+                return;
+            }
+
+            _flushCoroutine = manager.StartCoroutine(FlushLoop());
+        }
+
+        internal void StopFlushLoop()
+        {
+            PlayProbeManager manager = PlayProbeManager.Instance;
+
+            if (manager != null && _flushCoroutine != null)
+            {
+                manager.StopCoroutine(_flushCoroutine);
+            }
+
+            _flushCoroutine = null;
+        }
+
+        // Fire-and-forget flush of whatever is currently buffered (e.g. on session end).
+        internal void FlushBufferedEvents()
+        {
+            _ = FlushAsync();
+        }
+
+        private IEnumerator FlushLoop()
+        {
+            WaitForSeconds interval = new WaitForSeconds(FLushInterval);
+
+            while (true)
+            {
+                yield return interval;
+                _ = FlushAsync();
+            }
+        }
+
         internal void LogFps(float fps)
         {
             PlayProbeEvent payload = new ()

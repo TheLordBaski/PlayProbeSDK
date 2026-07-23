@@ -22,10 +22,14 @@ namespace PlayProbe
         public bool IsSessionActive { get; private set; }
 
         public PlayProbeSurvey Survey { get; private set; }
-        
+
+        public PlayProbeAnalytics Analytics { get; private set; }
+
         internal PlayProbeEvents Events { get; private set; }
 
         public List<SurveySchemaItem> surveySchemaItems;
+
+        private DateTime _sessionStartUtc;
 
         #region Monobehaviour
 
@@ -46,6 +50,7 @@ namespace PlayProbe
 
                 Survey = new PlayProbeSurvey(_runtimeConfig);
                 Events = new PlayProbeEvents(_runtimeConfig);
+                Analytics = new PlayProbeAnalytics(config);
             }
             catch (Exception exception)
             {
@@ -98,15 +103,23 @@ namespace PlayProbe
                 return;
             }
 
+            Analytics?.StopTracking();
+            Events?.FlushBufferedEvents();
+            Events?.StopFlushLoop();
+
+            double durationSeconds = Math.Max(0d, (DateTime.UtcNow - _sessionStartUtc).TotalSeconds);
+
             PlayProbeSdkSessionEndRequest endRequestPayload = new()
             {
                 session_id = _runtimeConfig.SessionId,
-                //TODO: load this data from analytics
-                duration_seconds = UnityEngine.Random.Range(10f, 15f),
-                avg_fps = 57.0,
-                min_fps = 25,
+                session_token = _runtimeConfig.SessionToken,
+                duration_seconds = durationSeconds,
+                avg_fps = Analytics != null ? Analytics.AverageFps : 0d,
+                min_fps = Analytics != null ? Analytics.MinFps : 0d,
                 survey_responses = Survey.GetSurveyResponses()
             };
+
+            IsSessionActive = false;
 
             EndSessionAsync(endRequestPayload);
         }
@@ -133,6 +146,44 @@ namespace PlayProbe
         internal string GetEndpointAddressForFunction(string edgeFunction)
         {
             return _runtimeConfig != null ? $"{PlayProbeRuntimeConfig.ApiEndpoint}{edgeFunction}" : null;
+        }
+
+        // Maps Unity's RuntimePlatform (e.g. "WindowsPlayer", "IPhonePlayer") to the vocabulary the
+        // sdk-start-session edge function accepts: Windows, macOS, Linux, Android, iOS, WebGL, Editor, WindowsEditor.
+        // Application.platform.ToString() does not match that set, so raw values were rejected with a 400.
+        // Platforms with no backend equivalent (consoles, other) fall back to "Editor" so start never fails.
+        private static string GetNormalizedPlatform()
+        {
+            switch (Application.platform)
+            {
+                case RuntimePlatform.WindowsPlayer:
+                    return "Windows";
+                case RuntimePlatform.WindowsEditor:
+                    return "WindowsEditor";
+                case RuntimePlatform.OSXPlayer:
+                    return "macOS";
+                case RuntimePlatform.LinuxPlayer:
+                    return "Linux";
+                case RuntimePlatform.Android:
+                    return "Android";
+                case RuntimePlatform.IPhonePlayer:
+                    return "iOS";
+                case RuntimePlatform.WebGLPlayer:
+                    return "WebGL";
+                case RuntimePlatform.OSXEditor:
+                case RuntimePlatform.LinuxEditor:
+                default:
+                    return "Editor";
+            }
+        }
+
+        // Response bodies contain the session_id (the SDK's only capability token), so they are logged
+        // only in the editor and development builds, never in shipped players.
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private static void LogVerbose(string message)
+        {
+            Debug.Log($"[PlayProbe] {message}");
         }
 
         private void ShowHandOffTokenScreen()
@@ -241,7 +292,7 @@ namespace PlayProbe
                 try
                 {
                     Debug.Log("[PlayProbe] Session ended successfully.");
-                    Debug.Log(responseBody);
+                    LogVerbose(responseBody);
                 }
                 catch (Exception ex)
                 {
@@ -260,7 +311,7 @@ namespace PlayProbe
                 handoff_token = handOffToken,
                 sdk_version = PlayProbeRuntimeConfig.SdkVersion,
                 unity_version = Application.unityVersion,
-                platform = Application.platform.ToString(),
+                platform = GetNormalizedPlatform(),
                 screen_width = Screen.width,
                 screen_height = Screen.height,
                 survey_schema = surveySchema
@@ -277,7 +328,7 @@ namespace PlayProbe
                 share_token = _runtimeConfig.ShareToken,
                 sdk_version = PlayProbeRuntimeConfig.SdkVersion,
                 unity_version = Application.unityVersion,
-                platform = Application.platform.ToString(),
+                platform = GetNormalizedPlatform(),
                 screen_width = Screen.width,
                 screen_height = Screen.height,
                 survey_schema = surveySchema
@@ -307,7 +358,7 @@ namespace PlayProbe
                     await request.SendWebRequest();
                     long statusCode = request.responseCode;
                     string responseBody = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
-                    Debug.Log(responseBody);
+                    LogVerbose(responseBody);
                     if (request.result is UnityWebRequest.Result.ConnectionError
                         or UnityWebRequest.Result.ProtocolError)
                     {
@@ -328,6 +379,7 @@ namespace PlayProbe
                             PlayProbeSdkSessionStartResponse startResponse =
                                 JsonUtility.FromJson<PlayProbeSdkSessionStartResponse>(responseBody);
                             _runtimeConfig.SessionId = startResponse.session_id;
+                            _runtimeConfig.SessionToken = startResponse.session_token;
                             surveySchemaItems = startResponse.survey_triggers.ToList();
                         }
                         catch (Exception ex)
@@ -339,6 +391,9 @@ namespace PlayProbe
 
                         Debug.Log("[PlayProbe] Session started successfully.");
                         IsSessionActive = true;
+                        _sessionStartUtc = DateTime.UtcNow;
+                        Analytics?.StartTracking();
+                        Events?.StartFlushLoop();
                     }
                 }
             }
@@ -358,6 +413,7 @@ namespace PlayProbe
                 PlayProbeSurveySubmitRequest requestPayload = new()
                 {
                     session_id = _runtimeConfig.SessionId,
+                    session_token = _runtimeConfig.SessionToken,
                     survey_responses = responses
                 };
                 string payloadJson;
@@ -453,6 +509,7 @@ namespace PlayProbe
         public const string SdkVersion = "0.1.0";
         public string ShareToken { get; set; }
         public string SessionId { get; set; }
+        public string SessionToken { get; set; }
         public bool IsStandaloneTest { get; set; }
 
         public string HandOffToken { get; set; }

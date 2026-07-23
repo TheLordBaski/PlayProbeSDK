@@ -10,6 +10,7 @@ namespace PlayProbe.Data
     {
 
         public string session_id;
+        public string session_token;
         public List<PlayProbeEvent> events;
     }
 }

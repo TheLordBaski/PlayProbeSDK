@@ -8,6 +8,7 @@ namespace PlayProbe.Data
     public class PlayProbeSdkSessionStartResponse
     {
         public string session_id;
+        public string session_token;
         public PlayProbeQuestionMapEntry[] question_map;
         public SurveySchemaItem[] survey_triggers;
     }
