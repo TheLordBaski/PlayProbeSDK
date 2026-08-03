@@ -5,10 +5,7 @@ namespace PlayProbe
     [CreateAssetMenu(fileName = "PlayProbeConfig", menuName = "PlayProbe/Configuration")]
     public class PlayProbeConfig : ScriptableObject
     {
-        //TODO: remove this consts
-        public const string SDKVersion = "0.1.0";
         [Header("Connection")]
-        public const string ApiEndpoint = "https://api.playprobe.io";
         public string shareToken;
         public bool isStandaloneTest;
 

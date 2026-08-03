@@ -15,7 +15,7 @@ namespace PlayProbe
         [SerializeField] private Button submitButton;
         [SerializeField] private Button skipButton;
         
-        private List<IPlayProbeQuestionElement> _questionElements = new();
+        private readonly List<IPlayProbeQuestionElement> _questionElements = new();
         
         private void Start()
         {
@@ -101,7 +101,7 @@ namespace PlayProbe
         
         private void OnSkip()
         {
-            
+            Destroy(gameObject);
         }
 
         private void OnSubmit()
@@ -120,6 +120,7 @@ namespace PlayProbe
                 responses.Add(questionElement.GetAnswerData());
             }
             PlayProbeManager.Instance.SubmitSurveyResponses(responses);
+            Destroy(gameObject);
         }
     }
 }

@@ -114,8 +114,8 @@ namespace PlayProbe
                 session_id = _runtimeConfig.SessionId,
                 session_token = _runtimeConfig.SessionToken,
                 duration_seconds = durationSeconds,
-                avg_fps = Analytics != null ? Analytics.AverageFps : 0d,
-                min_fps = Analytics != null ? Analytics.MinFps : 0d,
+                avg_fps = Analytics?.AverageFps ?? 0d,
+                min_fps = Analytics?.MinFps ?? 0d,
                 survey_responses = Survey.GetSurveyResponses()
             };
 
