@@ -53,11 +53,5 @@ namespace PlayProbe
         {
             return _registrations;
         }
-
-        public List<SurveyResponse> GetSurveyResponses()
-        {
-            //TODO: Implement this function to return survey responses for the current session. For now, it returns an empty list.
-            return new List<SurveyResponse>();
-        }
     }
 }

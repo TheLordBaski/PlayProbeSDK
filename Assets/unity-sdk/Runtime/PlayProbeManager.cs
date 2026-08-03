@@ -25,11 +25,19 @@ namespace PlayProbe
 
         public PlayProbeAnalytics Analytics { get; private set; }
 
-        internal PlayProbeEvents Events { get; private set; }
+        public PlayProbeEvents Events { get; private set; }
+
+        public PlayProbeFeedback Feedback { get; private set; }
 
         public List<SurveySchemaItem> surveySchemaItems;
 
         private DateTime _sessionStartUtc;
+
+        private GameObject _feedbackButtonInstance;
+
+        // Seconds elapsed since the current session started (0 when no session is active).
+        internal double PlaytimeSeconds =>
+            IsSessionActive ? Math.Max(0d, (DateTime.UtcNow - _sessionStartUtc).TotalSeconds) : 0d;
 
         #region Monobehaviour
 
@@ -51,6 +59,11 @@ namespace PlayProbe
                 Survey = new PlayProbeSurvey(_runtimeConfig);
                 Events = new PlayProbeEvents(_runtimeConfig);
                 Analytics = new PlayProbeAnalytics(config);
+
+                if (config != null && config.enableInstantFeedback)
+                {
+                    Feedback = new PlayProbeFeedback(_runtimeConfig, config);
+                }
             }
             catch (Exception exception)
             {
@@ -106,6 +119,7 @@ namespace PlayProbe
             Analytics?.StopTracking();
             Events?.FlushBufferedEvents();
             Events?.StopFlushLoop();
+            DestroyFeedbackButton();
 
             double durationSeconds = Math.Max(0d, (DateTime.UtcNow - _sessionStartUtc).TotalSeconds);
 
@@ -116,12 +130,41 @@ namespace PlayProbe
                 duration_seconds = durationSeconds,
                 avg_fps = Analytics?.AverageFps ?? 0d,
                 min_fps = Analytics?.MinFps ?? 0d,
-                survey_responses = Survey.GetSurveyResponses()
             };
 
             IsSessionActive = false;
 
             EndSessionAsync(endRequestPayload);
+        }
+
+        /// <summary>
+        /// Opens the instant-feedback popup from code (e.g. a custom button or a keyboard shortcut).
+        /// Requires Instant Feedback to be enabled in the config and an active session.
+        /// </summary>
+        public void OpenFeedback()
+        {
+            if (Feedback == null)
+            {
+                Debug.LogWarning("[PlayProbe] OpenFeedback ignored: Instant Feedback is disabled in the config.");
+                return;
+            }
+
+            Feedback.Open();
+        }
+
+        /// <summary>
+        /// Submits a feedback report directly (for fully custom feedback UIs that gather their own
+        /// title/description). Requires Instant Feedback to be enabled and an active session.
+        /// </summary>
+        public void SubmitFeedback(string title, string description, string category = null, bool attachScreenshot = true)
+        {
+            if (Feedback == null)
+            {
+                Debug.LogWarning("[PlayProbe] SubmitFeedback ignored: Instant Feedback is disabled in the config.");
+                return;
+            }
+
+            Feedback.Submit(title, description, category, attachScreenshot);
         }
 
         #endregion
@@ -184,6 +227,33 @@ namespace PlayProbe
         private static void LogVerbose(string message)
         {
             Debug.Log($"[PlayProbe] {message}");
+        }
+
+        private void SpawnFeedbackButton()
+        {
+            if (Feedback == null || _feedbackButtonInstance != null)
+            {
+                return;
+            }
+
+            GameObject prefab = Resources.Load<GameObject>("PlayProbeFeedbackButton");
+            if (prefab == null)
+            {
+                Debug.Log("[PlayProbe] No PlayProbeFeedbackButton prefab found. Trigger feedback via PlayProbeManager.Instance.OpenFeedback().");
+                return;
+            }
+
+            _feedbackButtonInstance = Instantiate(prefab);
+            DontDestroyOnLoad(_feedbackButtonInstance);
+        }
+
+        private void DestroyFeedbackButton()
+        {
+            if (_feedbackButtonInstance != null)
+            {
+                Destroy(_feedbackButtonInstance);
+                _feedbackButtonInstance = null;
+            }
         }
 
         private void ShowHandOffTokenScreen()
@@ -394,6 +464,7 @@ namespace PlayProbe
                         _sessionStartUtc = DateTime.UtcNow;
                         Analytics?.StartTracking();
                         Events?.StartFlushLoop();
+                        SpawnFeedbackButton();
                     }
                 }
             }

@@ -246,6 +246,58 @@ namespace PlayProbe
             }
         }
 
+        /// <summary>
+        /// Records a custom gameplay event (server event_type "custom") with no value.
+        /// Buffered and uploaded in batches. Ignored with a warning when no session is active.
+        /// </summary>
+        public void LogEvent(string eventName)
+        {
+            LogCustomInternal(eventName, null, null);
+        }
+
+        /// <summary>
+        /// Records a custom gameplay event with a numeric value (e.g. score, time, damage).
+        /// </summary>
+        public void LogEvent(string eventName, float value)
+        {
+            LogCustomInternal(eventName, value, null);
+        }
+
+        /// <summary>
+        /// Records a custom gameplay event with a text value (e.g. a chosen difficulty, an item id).
+        /// </summary>
+        public void LogEvent(string eventName, string valueText)
+        {
+            LogCustomInternal(eventName, null, valueText);
+        }
+
+        private void LogCustomInternal(string eventName, float? value, string valueText)
+        {
+            if (string.IsNullOrWhiteSpace(eventName))
+            {
+                Debug.LogWarning("[PlayProbe] LogEvent skipped: eventName is empty.");
+                return;
+            }
+
+            PlayProbeManager manager = PlayProbeManager.Instance;
+            if (manager == null || !manager.IsSessionActive)
+            {
+                Debug.LogWarning($"[PlayProbe] LogEvent('{eventName}') skipped: no active session.");
+                return;
+            }
+
+            PlayProbeEvent payload = new()
+            {
+                event_type = "custom",
+                event_name = eventName.Trim(),
+                value_num = value ?? 0d,
+                value_text = string.IsNullOrEmpty(valueText) ? null : valueText,
+                timestamp = DateTime.UtcNow.ToString("o")
+            };
+
+            Enqueue(payload);
+        }
+
         internal void LogFps(float fps)
         {
             PlayProbeEvent payload = new ()

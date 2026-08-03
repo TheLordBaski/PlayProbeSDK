@@ -21,6 +21,10 @@ namespace PlayProbe
         public float MinFps => _minFps == float.MaxValue ? 0f : _minFps;
         public bool HasFpsSamples => _fpsSampleCount > 0;
 
+        // Primary tracked object (if the game called SetTrackedTransform). Used by instant feedback
+        // to record the player/camera world position at report time.
+        internal Transform PrimaryTrackedTransform => _trackedTransform;
+
         public PlayProbeAnalytics(PlayProbeConfig config)
         {
             _config = config;
