@@ -88,6 +88,15 @@ namespace PlayProbe
                 return;
             }
 
+            // Single choke point for every buffered event. The crash handler is registered in the
+            // constructor (before any consent prompt can have run), so without this check exceptions
+            // raised pre-consent would sit in the buffer and be uploaded the moment consent is given.
+            PlayProbeManager manager = PlayProbeManager.Instance;
+            if (manager != null && !manager.IsCollectionAllowed)
+            {
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(payload.timestamp))
             {
                 payload.timestamp = DateTime.UtcNow.ToString("o");
@@ -233,6 +242,18 @@ namespace PlayProbe
         internal void FlushBufferedEvents()
         {
             _ = FlushAsync();
+        }
+
+        // Throws away everything buffered without sending it. Used when a player withdraws consent:
+        // anything still in the buffer must not reach the backend.
+        internal void DiscardBufferedEvents()
+        {
+            lock (_bufferLock)
+            {
+                _eventBuffer.Clear();
+            }
+
+            _retryCount = 0;
         }
 
         private IEnumerator FlushLoop()

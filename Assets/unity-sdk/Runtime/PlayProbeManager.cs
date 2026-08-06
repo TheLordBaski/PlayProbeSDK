@@ -29,11 +29,34 @@ namespace PlayProbe
 
         public PlayProbeFeedback Feedback { get; private set; }
 
+        /// <summary>
+        /// The player's consent decision. Only enforced when <c>requireConsent</c> is enabled in the
+        /// config; otherwise it is recorded but nothing is blocked.
+        /// </summary>
+        public PlayProbeConsent Consent { get; private set; }
+
+        /// <summary>
+        /// Whether the SDK is currently allowed to collect. True when consent is not required, or when
+        /// the player has granted it. Everything that sends data checks this first.
+        /// </summary>
+        public bool IsCollectionAllowed =>
+            config == null || !config.requireConsent || Consent?.Status == PlayProbeConsentStatus.Granted;
+
+        /// <summary>
+        /// Global answer-tag vocabulary delivered at session start. Feedback / survey UIs read this
+        /// to render a tag chooser; the tester's chosen ids travel back with the submission.
+        /// </summary>
+        public IReadOnlyList<AnswerTag> AnswerTags { get; private set; } = Array.Empty<AnswerTag>();
+
         public List<SurveySchemaItem> surveySchemaItems;
 
         private DateTime _sessionStartUtc;
 
         private GameObject _feedbackButtonInstance;
+
+        // Set when StartSession() was called but consent was still missing, so the session can start
+        // by itself the moment the player agrees — the game doesn't have to call StartSession() again.
+        private bool _sessionStartDeferred;
 
         // Seconds elapsed since the current session started (0 when no session is active).
         internal double PlaytimeSeconds =>
@@ -55,6 +78,9 @@ namespace PlayProbe
                 DontDestroyOnLoad(gameObject);
 
                 BuildRuntimeConfig();
+
+                Consent = new PlayProbeConsent();
+                Consent.Changed += HandleConsentChanged;
 
                 Survey = new PlayProbeSurvey(_runtimeConfig);
                 Events = new PlayProbeEvents(_runtimeConfig);
@@ -91,6 +117,19 @@ namespace PlayProbe
                 IsSessionActive = false;
                 return;
             }
+
+            // No network call at all until the player has agreed — starting a session would already
+            // send platform/screen/Unity-version data.
+            if (!IsCollectionAllowed)
+            {
+                _sessionStartDeferred = true;
+                Debug.Log(
+                    "[PlayProbe] Session start is waiting for consent. Call PlayProbeManager.Instance.SetConsent(true) once the player agrees.");
+                IsSessionActive = false;
+                return;
+            }
+
+            _sessionStartDeferred = false;
 
             if (_runtimeConfig.IsStandaloneTest)
             {
@@ -138,6 +177,33 @@ namespace PlayProbe
         }
 
         /// <summary>
+        /// Records the player's privacy decision after you have shown your own consent prompt.
+        ///
+        /// Granting starts a session automatically if <see cref="StartSession"/> was called earlier and
+        /// was waiting. Withdrawing stops collection immediately and drops anything not yet sent.
+        /// </summary>
+        /// <param name="granted">True if the player agreed, false to refuse or withdraw.</param>
+        public void SetConsent(bool granted)
+        {
+            if (Consent == null)
+            {
+                Debug.LogWarning("[PlayProbe] SetConsent ignored: the SDK is not initialized yet.");
+                return;
+            }
+
+            Consent.Set(granted);
+        }
+
+        /// <summary>
+        /// Forgets the stored decision so the player is asked again. Stops collection if a session is
+        /// running and consent is required.
+        /// </summary>
+        public void ResetConsent()
+        {
+            Consent?.Clear();
+        }
+
+        /// <summary>
         /// Opens the instant-feedback popup from code (e.g. a custom button or a keyboard shortcut).
         /// Requires Instant Feedback to be enabled in the config and an active session.
         /// </summary>
@@ -156,7 +222,7 @@ namespace PlayProbe
         /// Submits a feedback report directly (for fully custom feedback UIs that gather their own
         /// title/description). Requires Instant Feedback to be enabled and an active session.
         /// </summary>
-        public void SubmitFeedback(string title, string description, string category = null, bool attachScreenshot = true)
+        public void SubmitFeedback(string title, string description, string category = null, bool attachScreenshot = true, string[] tagIds = null)
         {
             if (Feedback == null)
             {
@@ -164,12 +230,57 @@ namespace PlayProbe
                 return;
             }
 
-            Feedback.Submit(title, description, category, attachScreenshot);
+            Feedback.Submit(title, description, category, attachScreenshot, tagIds);
         }
 
         #endregion
 
         #region Private methods
+
+        // Reacts to the player changing their mind at any point in the session lifecycle.
+        private void HandleConsentChanged(PlayProbeConsentStatus status)
+        {
+            if (config == null || !config.requireConsent)
+            {
+                // Consent is recorded but not enforced, so there is nothing to start or stop.
+                return;
+            }
+
+            if (status == PlayProbeConsentStatus.Granted)
+            {
+                if (_sessionStartDeferred && !IsSessionActive)
+                {
+                    Debug.Log("[PlayProbe] Consent granted. Starting the deferred session.");
+                    StartSession();
+                }
+
+                return;
+            }
+
+            StopCollectionAfterWithdrawal();
+        }
+
+        // Withdrawal has to stop collection now, not at the next session end. Buffered events are
+        // discarded rather than flushed: the player has just told us not to send them.
+        private void StopCollectionAfterWithdrawal()
+        {
+            _sessionStartDeferred = false;
+
+            if (!IsSessionActive)
+            {
+                return;
+            }
+
+            Debug.Log("[PlayProbe] Consent withdrawn. Stopping collection and discarding pending data.");
+
+            IsSessionActive = false;
+
+            Analytics?.StopTracking();
+            Events?.StopFlushLoop();
+            Events?.DiscardBufferedEvents();
+            Feedback?.Cancel();
+            DestroyFeedbackButton();
+        }
 
         private void BuildRuntimeConfig()
         {
@@ -451,6 +562,7 @@ namespace PlayProbe
                             _runtimeConfig.SessionId = startResponse.session_id;
                             _runtimeConfig.SessionToken = startResponse.session_token;
                             surveySchemaItems = startResponse.survey_triggers.ToList();
+                            AnswerTags = startResponse.answer_tags ?? Array.Empty<AnswerTag>();
                         }
                         catch (Exception ex)
                         {

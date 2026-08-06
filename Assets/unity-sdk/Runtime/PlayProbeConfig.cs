@@ -25,6 +25,22 @@ namespace PlayProbe
         public bool allowSurveyDismiss = true;
         public bool pauseTimeDuringSurvey = true;
 
+        [Header("Privacy")]
+        [Tooltip("When on, the SDK collects and sends nothing until you call " +
+                 "PlayProbeManager.Instance.SetConsent(true). Turn this on if your players are in the EU/UK " +
+                 "or anywhere else consent is needed before analytics. You are the data controller for data " +
+                 "collected inside your game, so showing the prompt is your responsibility.")]
+        public bool requireConsent = false;
+
+        [Tooltip("Shown by the Instant Feedback popup and any consent UI you build. Point this at YOUR " +
+                 "privacy policy — the one that tells players you use PlayProbe.")]
+        public string privacyPolicyUrl = "";
+
+        [Tooltip("Short line shown in the Instant Feedback popup, so players know what a report sends. " +
+                 "Leave empty to use the built-in English default; override it to translate.")]
+        [TextArea(2, 4)]
+        public string feedbackPrivacyNotice = "";
+
         [Header("Instant Feedback")]
         public bool enableInstantFeedback = false;
         public FeedbackButtonCorner feedbackButtonCorner = FeedbackButtonCorner.BottomRight;

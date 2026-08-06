@@ -10,6 +10,7 @@
 - App registers surveys via `PlayProbeManager.Instance.Survey.Register(...).Add...()` then starts a session via `StartSession()`.
 - `PlayProbeManager` owns the subsystems it creates in `Awake`: `Survey` (`PlayProbeSurvey`), `Analytics` (`PlayProbeAnalytics`), and `Events` (`PlayProbeEvents`). All are wired to `PlayProbeManager.Instance` — there is no separate session orchestrator class.
 - Custom gameplay events: `PlayProbeManager.Instance.Events.LogEvent(name)` / `LogEvent(name, float)` / `LogEvent(name, string)` (server `event_type` "custom"). `Events` is public; calls are no-ops with a warning when no session is active.
+- Consent: `PlayProbeConsent` (`Runtime/PlayProbeConsent.cs`) holds the player's decision in `PlayerPrefs` (`playprobe_consent`). Enforced only when `PlayProbeConfig.requireConsent` is on, via `PlayProbeManager.IsCollectionAllowed`. `StartSession()` defers instead of calling the network when consent is missing, and re-runs itself once `SetConsent(true)` fires; `SetConsent(false)` stops tracking and calls `Events.DiscardBufferedEvents()` without a session-end request. **Anything new that sends data must check `IsCollectionAllowed`.**
 - Data contracts are plain serializable classes in `Assets/unity-sdk/Data` (`PlayProbeSdkSessionStartRequest`, `SurveySchemaItem`, etc.).
 
 ## Runtime data flow (current manager)

@@ -64,6 +64,27 @@ namespace PlayProbe.Editor
             DrawProperty("pauseTimeDuringSurvey", "Pause Time During Survey");
 
             EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Privacy", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Inside your game YOU are the data controller and PlayProbe is your processor. You must name " +
+                "PlayProbe in your own privacy policy, and obtain consent where your players' laws require it. " +
+                "See section 10 of the SDK documentation for copy-paste policy text.",
+                MessageType.Info);
+            DrawProperty("requireConsent", "Require Consent Before Collecting");
+            DrawProperty("privacyPolicyUrl", "Your Privacy Policy URL");
+            DrawProperty("feedbackPrivacyNotice", "Feedback Notice Override");
+
+            SerializedProperty requireConsentProperty = _serializedConfig.FindProperty("requireConsent");
+            if (requireConsentProperty != null && !requireConsentProperty.boolValue)
+            {
+                EditorGUILayout.HelpBox(
+                    "Consent is not required. The SDK starts collecting as soon as StartSession() is called. " +
+                    "If you ship to the EU or UK, turn this on and call PlayProbeManager.Instance.SetConsent(true) " +
+                    "after your own consent prompt.",
+                    MessageType.Warning);
+            }
+
+            EditorGUILayout.Space();
 
             if (GUILayout.Button("Save Config", GUILayout.Height(30f)))
             {

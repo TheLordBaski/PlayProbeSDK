@@ -51,6 +51,34 @@ namespace PlayProbe
         public bool ScreenshotDefaultOn => _config != null && _config.feedbackScreenshotDefaultOn;
 
         /// <summary>
+        /// Default notice text for the feedback popup. A report sends more than the typed message —
+        /// a hardware profile, and optionally a screenshot of whatever is on screen — so players
+        /// should be told before they submit, not after.
+        /// </summary>
+        public const string DefaultPrivacyNotice =
+            "Your report is sent to the game's developer along with basic technical details about your " +
+            "device (operating system, CPU, GPU, memory) and, if you leave it ticked, a screenshot of " +
+            "your current screen.";
+
+        /// <summary>
+        /// The notice your feedback popup should display. Returns the developer's override from the
+        /// config when set, otherwise <see cref="DefaultPrivacyNotice"/>.
+        /// </summary>
+        public string PrivacyNotice =>
+            _config != null && !string.IsNullOrWhiteSpace(_config.feedbackPrivacyNotice)
+                ? _config.feedbackPrivacyNotice.Trim()
+                : DefaultPrivacyNotice;
+
+        /// <summary>
+        /// The developer's privacy policy URL from the config, or null when they have not set one.
+        /// Show it as a link next to <see cref="PrivacyNotice"/> when present.
+        /// </summary>
+        public string PrivacyPolicyUrl =>
+            _config != null && !string.IsNullOrWhiteSpace(_config.privacyPolicyUrl)
+                ? _config.privacyPolicyUrl.Trim()
+                : null;
+
+        /// <summary>
         /// Opens the feedback popup: captures the current frame, optionally pauses the game, and
         /// spawns the PlayProbeFeedbackCanvas prefab from Resources. Safe to call from a button or
         /// a keyboard shortcut. No-op (with a warning) when no session is active.
@@ -78,7 +106,7 @@ namespace PlayProbe
         /// screenshot captured by Open() when present, otherwise captures one on demand (if allowed
         /// and requested). Closes the popup and unpauses the game afterwards.
         /// </summary>
-        public void Submit(string title, string description, string category = null, bool attachScreenshot = true)
+        public void Submit(string title, string description, string category = null, bool attachScreenshot = true, string[] tagIds = null)
         {
             PlayProbeManager manager = PlayProbeManager.Instance;
             if (manager == null || !manager.IsSessionActive)
@@ -93,7 +121,7 @@ namespace PlayProbe
                 return;
             }
 
-            manager.StartCoroutine(SubmitRoutine(title, description, category, attachScreenshot));
+            manager.StartCoroutine(SubmitRoutine(title, description, category, attachScreenshot, tagIds));
         }
 
         /// <summary>Closes the popup and unpauses without submitting.</summary>
@@ -109,7 +137,7 @@ namespace PlayProbe
             ShowCanvas();
         }
 
-        private IEnumerator SubmitRoutine(string title, string description, string category, bool attachScreenshot)
+        private IEnumerator SubmitRoutine(string title, string description, string category, bool attachScreenshot, string[] tagIds)
         {
             bool wantShot = attachScreenshot && AllowScreenshot;
 
@@ -121,7 +149,7 @@ namespace PlayProbe
             byte[] jpg = wantShot ? _pendingScreenshotJpg : null;
             PlayProbeFeedbackRequest request = BuildRequest(title, description, category);
 
-            SendFeedbackAsync(request, jpg);
+            SendFeedbackAsync(request, jpg, tagIds);
 
             Cleanup();
         }
@@ -290,7 +318,7 @@ namespace PlayProbe
             };
         }
 
-        private async void SendFeedbackAsync(PlayProbeFeedbackRequest request, byte[] screenshotJpg)
+        private async void SendFeedbackAsync(PlayProbeFeedbackRequest request, byte[] screenshotJpg, string[] tagIds)
         {
             PlayProbeManager manager = PlayProbeManager.Instance;
             if (manager == null)
@@ -315,6 +343,12 @@ namespace PlayProbe
                 new MultipartFormDataSection("session_token", _runtimeConfig.SessionToken),
                 new MultipartFormDataSection("payload", payloadJson),
             };
+
+            string tagIdsJson = BuildTagIdsJson(tagIds);
+            if (tagIdsJson != null)
+            {
+                sections.Add(new MultipartFormDataSection("tag_ids", tagIdsJson));
+            }
 
             if (screenshotJpg != null && screenshotJpg.Length > 0)
             {
@@ -350,6 +384,38 @@ namespace PlayProbe
             {
                 Debug.LogWarning($"[PlayProbe] Could not submit feedback: {exception.Message}");
             }
+        }
+
+        // Serializes the tester's chosen tag ids to a JSON array string for the multipart "tag_ids"
+        // field (JsonUtility can't serialize a bare array). Returns null when there is nothing to send.
+        private static string BuildTagIdsJson(string[] tagIds)
+        {
+            if (tagIds == null || tagIds.Length == 0)
+            {
+                return null;
+            }
+
+            System.Text.StringBuilder builder = new System.Text.StringBuilder();
+            builder.Append('[');
+            bool first = true;
+            foreach (string tagId in tagIds)
+            {
+                if (string.IsNullOrWhiteSpace(tagId))
+                {
+                    continue;
+                }
+
+                if (!first)
+                {
+                    builder.Append(',');
+                }
+
+                builder.Append('"').Append(tagId.Trim().Replace("\\", "\\\\").Replace("\"", "\\\"")).Append('"');
+                first = false;
+            }
+
+            builder.Append(']');
+            return first ? null : builder.ToString();
         }
 
         private void ShowCanvas()
