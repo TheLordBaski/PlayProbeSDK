@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db1eedaa2140fe3428a585c312bb21a8, type: 3}
+  m_Name: PlayProbeUiTheme
+  m_EditorClassIdentifier: PlayProbeSDK::PlayProbe.PlayProbeUiTheme
+  scrim: {r: 0.019607844, g: 0.019607844, b: 0.03529412, a: 0.8509804}
+  surface: {r: 0.07058824, g: 0.07058824, b: 0.09019608, a: 1}
+  surfaceRaised: {r: 0.1254902, g: 0.1254902, b: 0.15294118, a: 1}
+  border: {r: 0.16470589, g: 0.16470589, b: 0.19607843, a: 1}
+  primary: {r: 0.4745098, g: 0.23529412, b: 0.8666667, a: 1}
+  accent: {r: 0.12941177, g: 0.8352941, b: 0.92941177, a: 1}
+  danger: {r: 0.8627451, g: 0.15686275, b: 0.15686275, a: 1}
+  success: {r: 0.13333334, g: 0.77254903, b: 0.36862746, a: 1}
+  textPrimary: {r: 0.9490196, g: 0.9490196, b: 0.9490196, a: 1}
+  textMuted: {r: 0.5294118, g: 0.5294118, b: 0.57254905, a: 1}
+  textOnPrimary: {r: 1, g: 1, b: 1, a: 1}
+  font: {fileID: 0}
+  fontSizeTitle: 30
+  fontSizeHeading: 22
+  fontSizeBody: 18
+  fontSizeCaption: 14
+  referenceResolution: {x: 1920, y: 1080}
+  panelWidth: 720
+  panelPadding: 32
+  spacing: 16
+  controlHeight: 52
+  cornerRadius: 10
+  buttonFill: {fileID: 21300000, guid: 511cb8eee60704f5095b83a897bc0e2a, type: 3}
+  buttonOutline: {fileID: 21300000, guid: 393be341333db9c4aab8e31464337ce2, type: 3}
+  panelFill: {fileID: 21300000, guid: 7d8c1b8fc84db6b126360527736ec7b7, type: 3}
+  panelOutline: {fileID: 21300000, guid: adc8309eeb4e7512f3d05b58d0d38ea2, type: 3}
+  pillFill: {fileID: 21300000, guid: 36cd0285f1dedec624569973ef792f1d, type: 3}
+  pillOutline: {fileID: 21300000, guid: 4b313d4b3d6ee309432ee43c296ac68c, type: 3}
+  circleFill: {fileID: 21300000, guid: 0710ae380dc8908fc3dc8cb3678a6c9e, type: 3}
+  checkmark: {fileID: 21300000, guid: 45eb6ae835118472741232973c69de9b, type: 3}
+  chatBubble: {fileID: 21300000, guid: a379691a76bcc4df6784a78f64ad2e4b, type: 3}
+  feedbackTitle: Send feedback
+  feedbackSubtitle: Tell the developer what you ran into. It goes straight to them.
+  feedbackTitlePlaceholder: Short summary (optional)
+  feedbackDescriptionPlaceholder: What happened? What did you expect instead?
+  feedbackScreenshotLabel: Attach a screenshot of my screen
+  feedbackTagsLabel: What is this about? (optional)
+  feedbackSubmitLabel: Send
+  feedbackCancelLabel: Cancel
+  feedbackSentMessage: "Thanks \u2014 your feedback was sent."
+  feedbackEmptyError: Please describe what happened before sending.
+  privacyPolicyLinkLabel: Privacy policy
+  feedbackCategoryLabels:
+  - Bug
+  - Suggestion
+  - Praise
+  - Other
+  surveySubmitLabel: Submit
+  surveySkipLabel: Skip
+  surveyIncompleteError: Please answer the required questions.
+  surveySentMessage: Thanks for the feedback!
+  surveyTagsLabel: Add tags (optional)
+  tokenTitle: Enter your session code
+  tokenSubtitle: Find the 8-character code on the PlayProbe session page and type
+    it in.
+  tokenStartLabel: Start playtest
+  tokenPasteLabel: Paste from clipboard
+  tokenInvalidError: That code was not accepted. Check it and try again.
+  tokenIncompleteError: Enter all 8 characters.
+  tokenCheckingLabel: "Checking\u2026"
+  consentTitle: Help improve this game?
+  consentBody: "We'd like to collect anonymous playtesting data while you play \u2014
+    how long you play, frame rate, crashes, and anything you choose to send us as
+    feedback. It is never used for advertising and you can change your mind at any
+    time in Settings."
+  consentAcceptLabel: Sure, count me in
+  consentDeclineLabel: No thanks

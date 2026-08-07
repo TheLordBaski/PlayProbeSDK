@@ -1,0 +1,146 @@
+// Copyright PlayProbe.io 2026. All rights reserved
+
+using System;
+using PlayProbe.Data;
+using PlayProbe.Interfaces;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace PlayProbe
+{
+    /// <summary>
+    /// A pick-one-from-a-list question. Options come from the schema and are laid out two per row, so
+    /// four options read as a 2x2 grid rather than a long column. An odd count leaves the last slot
+    /// hidden but still occupying its column, keeping the remaining option the same width as the rest.
+    ///
+    /// Rendered from <c>Resources/PlayProbeMultipleOptions</c>.
+    /// </summary>
+    public class MultipleChoiceQuestion : MonoBehaviour, IPlayProbeQuestionElement
+    {
+        [SerializeField] private TextMeshProUGUI questionText;
+
+        [SerializeField] private PlayProbeSelectableButton selectionButton;
+
+        [SerializeField] private RectTransform answersContainer;
+
+        private PlayProbeSelectableButton _selectableButton;
+
+        private SurveyQuestionSchema _schema;
+
+        /// <inheritdoc />
+        public void InitQuestion(SurveyQuestionSchema questionSchema)
+        {
+            if (questionSchema == null)
+            {
+                Debug.LogWarning("[PlayProbe] MultipleChoiceQuestion.InitQuestion got null schema.");
+                return;
+            }
+
+            if (questionText != null)
+            {
+                questionText.SetText(questionSchema.label ?? string.Empty);
+            }
+
+            if (answersContainer == null)
+            {
+                Debug.LogWarning("[PlayProbe] MultipleChoiceQuestion is missing answers container.");
+                return;
+            }
+
+            if (selectionButton == null)
+            {
+                Debug.LogWarning("[PlayProbe] MultipleChoiceQuestion is missing selection button prefab.");
+                return;
+            }
+
+            ClearAnswers();
+
+            string[] options = questionSchema.options;
+            if (options == null || options.Length == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < options.Length; i += 2)
+            {
+                RectTransform row = CreateRow(i / 2);
+
+                SpawnOptionButton(row, options[i], true);
+
+                bool hasSecondOption = i + 1 < options.Length;
+                SpawnOptionButton(row, hasSecondOption ? options[i + 1] : string.Empty, hasSecondOption);
+            }
+            _schema = questionSchema;
+        }
+
+        /// <inheritdoc />
+        public SurveyResponse GetAnswerData()
+        {
+            if (!IsAnswerSelected())
+            {
+                return new SurveyResponse();
+            }
+            return new SurveyResponse
+            {
+                question_id = _schema.id,
+                value_choice = _selectableButton.GetLabel()
+            };
+        }
+
+        /// <inheritdoc />
+        public bool IsAnswerSelected()
+        {
+            return _schema != null && _selectableButton != null;
+        }
+
+        private void ClearAnswers()
+        {
+            for (int i = answersContainer.childCount - 1; i >= 0; i--)
+            {
+                Destroy(answersContainer.GetChild(i).gameObject);
+            }
+        }
+
+        private RectTransform CreateRow(int rowIndex)
+        {
+            GameObject rowObject = new GameObject($"AnswerRow_{rowIndex}", typeof(RectTransform),
+                typeof(HorizontalLayoutGroup));
+            RectTransform rowTransform = rowObject.GetComponent<RectTransform>();
+            rowTransform.SetParent(answersContainer, false);
+
+            HorizontalLayoutGroup horizontalGroup = rowObject.GetComponent<HorizontalLayoutGroup>();
+            horizontalGroup.childAlignment = TextAnchor.MiddleCenter;
+            horizontalGroup.childControlWidth = true;
+            horizontalGroup.childControlHeight = false;
+            horizontalGroup.childForceExpandWidth = true;
+            horizontalGroup.childForceExpandHeight = false;
+            horizontalGroup.spacing = 50f;
+            rowTransform.sizeDelta = new Vector2(0, 75); // Set a fixed height for the row
+
+            return rowTransform;
+        }
+
+        private void SpawnOptionButton(RectTransform parent, string label, bool isActive)
+        {
+            PlayProbeSelectableButton optionButton = Instantiate(selectionButton, parent);
+            optionButton.SetLabel(label);
+            if (!isActive)
+            {
+                optionButton.Hide();
+            }
+            optionButton.button.onClick.AddListener(() => OnOptionSelected(optionButton));
+            
+        }
+
+        private void OnOptionSelected(PlayProbeSelectableButton optionButton)
+        {
+            if (_selectableButton)
+            {
+                _selectableButton.DeselectButton();
+            }
+            _selectableButton = optionButton;
+            _selectableButton.SelectButton();
+        }
+    }
+}

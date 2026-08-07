@@ -1,0 +1,21 @@
+{
+  "name": "PlayProbeEditor",
+  "rootNamespace": "PlayProbe.Editor",
+  "references": [
+    "PlayProbeSDK",
+    "GUID:84e7fb44c1fdce74eb2284c3b7152a59",
+    "GUID:6055be8ebefd69e48b49212b09b47b2f",
+    "GUID:2bafac87e7f4b9b418d9448d219b01ab"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

@@ -13,10 +13,20 @@ MonoBehaviour:
   m_Name: PlayProbeConfig
   m_EditorClassIdentifier: PlayProbeSDK::PlayProbe.PlayProbeConfig
   shareToken: 9956fa53-8100-4e25-88ca-4191514f6a79
-  isStandaloneTest: 0
+  isStandaloneTest: 1
   enableFpsTracking: 1
   enablePositionHeatmap: 0
   positionLogInterval: 5
   enableCrashReporting: 1
   allowSurveyDismiss: 1
   pauseTimeDuringSurvey: 1
+  requireConsent: 0
+  useBuiltInConsentDialog: 1
+  privacyPolicyUrl: 
+  feedbackPrivacyNotice: 
+  enableInstantFeedback: 1
+  feedbackButtonCorner: 0
+  pauseGameDuringFeedback: 1
+  feedbackAllowScreenshot: 1
+  feedbackScreenshotDefaultOn: 1
+  feedbackScreenshotMaxWidth: 1920
