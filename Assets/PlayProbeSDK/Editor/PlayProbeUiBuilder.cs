@@ -690,7 +690,7 @@ namespace PlayProbe.Editor
             string name = emoji ? "PlayProbeEmojiQuestion" : "PlayProbeRatingQuestion";
             GameObject root = CreateQuestionShell(name, theme, out TextMeshProUGUI question);
 
-            RectTransform row = CreateRow(root.transform, "Scale", 12f, TextAnchor.MiddleCenter,
+            RectTransform row = CreateRow(root.transform, "Scale", 4f, TextAnchor.MiddleCenter,
                 expandChildWidth: true);
             SetSize(row.gameObject, null, emoji ? 80f : 64f);
 
