@@ -16,11 +16,38 @@ namespace PlayProbe.Editor
         private const string ConfigDirectory = "Assets/Resources";
         private const string ConfigPath = "Assets/Resources/PlayProbeConfig.asset";
         private const string ThemePath = "Assets/Resources/PlayProbeUiTheme.asset";
-        private const string FeedbackCanvasPath = "Assets/unity-sdk/Resources/PlayProbeFeedbackCanvas.prefab";
+        private static string FeedbackCanvasPath => PlayProbePackagePaths.PrefabPath("PlayProbeFeedbackCanvas");
 
         private PlayProbeConfig _config;
         private SerializedObject _serializedConfig;
         private Vector2 _scroll;
+
+        // A share token is a UUID from crypto.randomUUID(): 36 characters, 8-4-4-4-12.
+        private const int ShareTokenLength = 36;
+
+        // Long enough that pasting a token does not fire a request per keystroke, short enough that
+        // it still feels like it happened on paste.
+        private const double AutoCheckDelaySeconds = 0.4;
+
+        // Token check state. _verifiedToken is what the result actually describes, so editing the
+        // field clears a stale "all good" instead of leaving it reassuring the wrong token.
+        private PlayProbeTokenVerifier.Result _verifyResult;
+        private string _verifiedToken;
+        private bool _isVerifying;
+
+        // Auto-check bookkeeping. _lastSeenToken detects an edit; _pendingToken is one waiting out
+        // the debounce.
+        private string _lastSeenToken;
+        private string _pendingToken;
+        private double _pendingSince;
+
+        // A finished check lands here instead of being applied straight away. IMGUI runs OnGUI once
+        // to lay out and again to repaint, and throws "Mismatched LayoutGroup" if the two passes
+        // emit a different number of controls — which is exactly what happens when a network
+        // callback swaps a "Checking..." box for a result box between them. Everything that changes
+        // the shape of the UI is drained during the Layout event, so both passes always agree.
+        private PlayProbeTokenVerifier.Result _incomingResult;
+        private string _incomingResultToken;
 
         [MenuItem("Tools/PlayProbe/Setup", priority = 0)]
         public static void Open()
@@ -33,10 +60,58 @@ namespace PlayProbe.Editor
         private void OnEnable()
         {
             LoadConfig();
+
+            // A domain reload kills any check that was in flight along with its callback, so never
+            // come back up stuck on "Checking...".
+            _isVerifying = false;
+            _pendingToken = null;
+        }
+
+        /// <summary>
+        /// Runs ten times a second whether or not the window has focus. OnGUI only runs when
+        /// something asks it to, so while a check is queued or in flight this is what keeps asking —
+        /// the work itself happens in OnGUI's Layout pass.
+        /// </summary>
+        private void OnInspectorUpdate()
+        {
+            if (_isVerifying || _pendingToken != null || _incomingResult != null)
+            {
+                Repaint();
+            }
+        }
+
+        /// <summary>
+        /// Applies every state change that would alter the control layout. Called only on the Layout
+        /// event, so the Repaint pass that follows sees identical state.
+        /// </summary>
+        private void ApplyDeferredTokenState()
+        {
+            if (_incomingResult != null)
+            {
+                _isVerifying = false;
+                _verifiedToken = _incomingResultToken;
+                _verifyResult = _incomingResult;
+                _incomingResult = null;
+                _incomingResultToken = null;
+            }
+
+            if (_pendingToken != null
+                && !_isVerifying
+                && EditorApplication.timeSinceStartup - _pendingSince >= AutoCheckDelaySeconds)
+            {
+                string token = _pendingToken;
+                _pendingToken = null;
+                BeginTokenCheck(token);
+            }
         }
 
         private void OnGUI()
         {
+            if (Event.current.type == EventType.Layout)
+            {
+                ApplyDeferredTokenState();
+            }
+
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
             EditorGUILayout.Space();
@@ -89,6 +164,8 @@ namespace PlayProbe.Editor
                     MessageType.Warning);
             }
 
+            DrawTokenCheck(shareToken);
+
             SerializedProperty standalone = _serializedConfig.FindProperty("isStandaloneTest");
             if (standalone != null)
             {
@@ -102,6 +179,194 @@ namespace PlayProbe.Editor
             }
 
             EditorGUILayout.Space();
+        }
+
+        /// <summary>
+        /// The "is this token going to work" check. The backend refuses SDK sessions for tests that
+        /// are closed, have SDK mode off, or belong to a Free account; all three are invisible from
+        /// inside Unity until a session silently fails to start, so ask once here instead.
+        /// </summary>
+        private void DrawTokenCheck(SerializedProperty shareToken)
+        {
+            string rawToken = shareToken != null ? shareToken.stringValue ?? string.Empty : string.Empty;
+            string token = rawToken.Trim();
+
+            // Layout only, for the same reason as ApplyDeferredTokenState: both of these add or
+            // remove a HelpBox, and the Repaint pass has to agree with the Layout pass about how
+            // many controls there are.
+            if (Event.current.type == EventType.Layout)
+            {
+                NoticeTokenEdit(rawToken, token);
+
+                // A result only describes the token it was fetched for.
+                if (_verifyResult != null && !string.Equals(_verifiedToken, token, System.StringComparison.Ordinal))
+                {
+                    _verifyResult = null;
+                }
+            }
+
+            DrawTokenLengthHint(rawToken, token);
+
+            // Both waiting states are worth showing. Without them the window sits silent for up to a
+            // second after a paste and the check looks like it never fired.
+            if (_pendingToken != null)
+            {
+                EditorGUILayout.HelpBox("Token complete — checking it in a moment...", MessageType.None);
+            }
+            else if (_isVerifying)
+            {
+                EditorGUILayout.HelpBox("Checking this token with playprobe.io...", MessageType.None);
+            }
+
+            // The button is now the "I just changed something on the dashboard, ask again" path
+            // rather than the only way to run the check.
+            using (new EditorGUI.DisabledScope(token.Length == 0 || _isVerifying || _pendingToken != null))
+            {
+                string label = _verifyResult != null ? "Check Again" : "Check Token";
+
+                if (GUILayout.Button(label, GUILayout.Height(24f)))
+                {
+                    BeginTokenCheck(token);
+                }
+            }
+
+            if (_verifyResult == null)
+            {
+                EditorGUILayout.Space();
+                return;
+            }
+
+            switch (_verifyResult.Outcome)
+            {
+                case PlayProbeTokenVerifier.Outcome.Ready:
+                    EditorGUILayout.HelpBox(
+                        $"Ready. Connected to \"{_verifyResult.TestName}\" — Pro plan, SDK mode on, test open.",
+                        MessageType.Info);
+                    break;
+
+                case PlayProbeTokenVerifier.Outcome.Blocked:
+                    EditorGUILayout.HelpBox(
+                        $"Token is valid, and it belongs to \"{_verifyResult.TestName}\". Sessions will still be "
+                        + "refused:\n\n• " + string.Join("\n• ", _verifyResult.Problems),
+                        MessageType.Warning);
+                    break;
+
+                case PlayProbeTokenVerifier.Outcome.InvalidToken:
+                    EditorGUILayout.HelpBox(string.Join("\n", _verifyResult.Problems), MessageType.Error);
+                    break;
+
+                default:
+                    // Unreachable: says nothing about the token, so it must not read like a rejection.
+                    EditorGUILayout.HelpBox(
+                        string.Join("\n", _verifyResult.Problems)
+                        + "\n\nThis is a problem with the check itself, not necessarily with your token.",
+                        MessageType.Warning);
+                    break;
+            }
+
+            if (_verifyResult.NeedsUpgrade && GUILayout.Button("Upgrade to Pro on playprobe.io", GUILayout.Height(24f)))
+            {
+                Application.OpenURL(_verifyResult.UpgradeUrl);
+            }
+
+            EditorGUILayout.Space();
+        }
+
+        /// <summary>
+        /// Watches the token field for edits and queues an automatic check once the value reaches
+        /// the length of a real token. Debounced rather than immediate, so pasting a token — which
+        /// arrives as one change, but typing one does not — costs a single request.
+        /// </summary>
+        private void NoticeTokenEdit(string rawToken, string token)
+        {
+            if (string.Equals(rawToken, _lastSeenToken, System.StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _lastSeenToken = rawToken;
+            _pendingToken = null;
+
+            // Anything other than an exactly-token-length value is a half-typed or mangled token;
+            // asking the backend about it would only ever come back "no test has this token", which
+            // the length hint already says without a round trip.
+            if (token.Length != ShareTokenLength)
+            {
+                return;
+            }
+
+            // Already know the answer for this exact value.
+            if (string.Equals(token, _verifiedToken, System.StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _pendingToken = token;
+            _pendingSince = EditorApplication.timeSinceStartup;
+        }
+
+        /// <summary>
+        /// Says what is wrong with the shape of the token before the network is involved. "Too
+        /// short" is a far more useful answer to a half-pasted token than "no test has this token".
+        /// </summary>
+        private void DrawTokenLengthHint(string rawToken, string token)
+        {
+            if (token.Length == 0)
+            {
+                // The empty-token warning above this already covers it.
+                return;
+            }
+
+            if (rawToken.Length != token.Length)
+            {
+                EditorGUILayout.HelpBox(
+                    "The token has whitespace around it. It is trimmed before use, so this still works — " +
+                    "but it usually means the copy picked up a stray character.",
+                    MessageType.None);
+            }
+
+            if (token.Length < ShareTokenLength)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Token is too short — {token.Length} of {ShareTokenLength} characters. " +
+                    "It is checked automatically once it is complete.",
+                    MessageType.None);
+                return;
+            }
+
+            if (token.Length > ShareTokenLength)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Token is too long — {token.Length} characters, expected {ShareTokenLength}. " +
+                    "Check for a doubled paste.",
+                    MessageType.Warning);
+                return;
+            }
+
+            // Right length, wrong shape. Worth a nudge, but not worth blocking the check: the
+            // backend is the authority on what a valid token looks like, not this window.
+            if (!System.Guid.TryParseExact(token, "D", out _))
+            {
+                EditorGUILayout.HelpBox(
+                    "That is the right length but not the usual share token shape " +
+                    "(8-4-4-4-12 hexadecimal). Checking it anyway.",
+                    MessageType.None);
+            }
+        }
+
+        private void BeginTokenCheck(string token)
+        {
+            _isVerifying = true;
+            _verifyResult = null;
+
+            // Park the result rather than applying it: the callback arrives from the editor's update
+            // loop, which can land between OnGUI's Layout and Repaint passes.
+            PlayProbeTokenVerifier.Verify(token, result =>
+            {
+                _incomingResultToken = token;
+                _incomingResult = result;
+                Repaint();
+            });
         }
 
         private void DrawSessionSection()

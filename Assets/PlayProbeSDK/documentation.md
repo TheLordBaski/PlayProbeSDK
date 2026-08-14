@@ -37,8 +37,8 @@ dropped events. Nothing bubbles an exception into your `Update`.
 
 ## 2. Install and set up
 
-**Requirements:** Unity 6000.0+, `com.unity.ugui` (already in every project), and a PlayProbe test
-with a **share token**, with SDK mode enabled.
+**Requirements:** Unity 6000.0+, `com.unity.ugui` (already in every project), a PlayProbe **Pro**
+plan, and a test with a **share token** and SDK mode enabled.
 
 > The SDK awaits `AsyncOperation` directly, which Unity only supports from 2023.1 onward. 6000.0 is
 > the version it is built and tested against.
@@ -46,10 +46,27 @@ with a **share token**, with SDK mode enabled.
 Then, from `Tools > PlayProbe > Setup`:
 
 1. **Create PlayProbeConfig Asset** — written to `Assets/Resources/PlayProbeConfig.asset`.
-2. Paste your **share token**.
+2. Paste your **share token**. It is checked automatically the moment it is complete.
 3. **Create Missing UI Prefabs** — writes the screens into the package's `Resources` folder. Without
    this the survey and feedback popups have nothing to spawn.
 4. **Create PlayProbeManager In Active Scene** — adds the manager and assigns your config to it.
+
+### The SDK is a Pro feature
+
+`sdk-start-session` refuses sessions for tests owned by a Free account — it answers
+`plan_required` and the game logs a warning instead of collecting anything. Nothing crashes, but
+nothing is recorded either.
+
+The setup window asks the backend the same question at edit time, so you find out in the editor
+rather than from a build you already shipped. It reports which of the three gates is unmet — plan,
+SDK mode, test open — and offers a button straight to the upgrade page when it is the plan.
+
+The check runs **by itself** as soon as the token field holds a complete token (36 characters), a
+fraction of a second after you paste. Before that the window tells you what is wrong with the value
+without touching the network — too short, too long, whitespace around it, or the right length but
+not the usual `8-4-4-4-12` shape. **Check Again** re-runs it on demand, which is what you want after
+switching the test to SDK mode or upgrading the account: the token has not changed, so nothing would
+re-trigger on its own.
 
 Put the manager in your first scene. It survives scene loads.
 
@@ -283,7 +300,7 @@ because there is no colour block to do it for them.
 Borders are a separate ring Image rather than uGUI's `Outline` effect — that effect draws the graphic
 four times at an offset, which smears rather than strokes on a rounded corner.
 
-Drop the PNGs into `Assets/unity-sdk/Textures/UI/` under their exported filenames and the prefab
+Drop the PNGs into the package's `Textures/UI/` folder under their exported filenames and the prefab
 builder assigns them to the theme's empty sprite slots for you. A slot you have already filled is
 left alone, so pointing one at your own artwork survives a rebuild. Leave a slot empty and that shape
 falls back to Unity's built-in `UISprite`.
@@ -538,8 +555,9 @@ The SDK never throws into gameplay. Failures log a `[PlayProbe]` warning — che
 | Symptom | Cause |
 | --- | --- |
 | **Nothing happens at all** | No share token, or `requireConsent` is on and waiting. The console says which. |
+| **"requires a Pro plan"** | The account owning the test is on Free. Upgrade, then press **Check Again** in the setup window. |
 | **`requireConsent` is on but no prompt appears** | `useBuiltInConsentDialog` is off (so you are expected to show your own), the player already declined, or the prefab was never generated. |
-| **Session does not start** | Check the token, that the test is open with SDK mode enabled, and the console for the status code. |
+| **Session does not start** | Open the setup window and read the token banner — it separates a bad token from SDK mode being off, a closed test, and a Free account. |
 | **Survey does not show** | The trigger key must match a `Register(...)` made *before* `StartSession()`. |
 | **Survey or feedback popup does nothing** | The prefabs were never generated. Run `Tools > PlayProbe > UI > Create Missing Prefabs`. |
 | **UI appears but clicks do nothing** | Something else in the scene is covering it, or an input module is missing. The SDK creates an EventSystem when there is none. |
@@ -604,5 +622,6 @@ The SDK never throws into gameplay. Failures log a `[PlayProbe]` warning — che
 
 ### Backend endpoints
 
-`sdk-check-function`, `sdk-start-session`, `sdk-session-end`, `sdk-events`, `sdk-mid-survey`,
-`sdk-feedback` — all under `https://api.playprobe.io/`, all HTTPS, all snake_case payloads.
+`sdk-verify-token` (editor only), `sdk-check-function`, `sdk-start-session`, `sdk-session-end`,
+`sdk-events`, `sdk-mid-survey`, `sdk-feedback` — all under `https://api.playprobe.io/`, all HTTPS,
+all snake_case payloads.

@@ -23,10 +23,14 @@ namespace PlayProbe.Editor
     /// </summary>
     internal static class PlayProbeUiBuilder
     {
-        private const string ResourcesDirectory = "Assets/unity-sdk/Resources";
+        // Resolved from where the package actually sits, so moving or renaming the folder does not
+        // send generated prefabs to a path nothing loads from. The theme is the exception: it
+        // belongs to the project, not the package, so it keeps a fixed home the developer owns.
+        private static string ResourcesDirectory => PlayProbePackagePaths.ResourcesFolder;
+        private static string EmojiTexturePath => $"{PlayProbePackagePaths.TexturesFolder}/Emoji.png";
+        private static string SpriteDirectory => PlayProbePackagePaths.UiSpritesFolder;
+
         private const string ThemeAssetPath = "Assets/Resources/PlayProbeUiTheme.asset";
-        private const string EmojiTexturePath = "Assets/unity-sdk/Textures/Emoji.png";
-        private const string SpriteDirectory = "Assets/unity-sdk/Textures/UI";
 
         // Every prefab this builder owns, in the order it reports them.
         private static readonly string[] PrefabNames =

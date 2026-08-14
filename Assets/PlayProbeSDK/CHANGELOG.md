@@ -29,6 +29,15 @@ several bugs that only showed up over a long session.
   **`PlayProbeFeedback.MaxDescriptionLength`**.
 - The setup window now covers Instant Feedback and the UI theme, warns when the share token is
   empty or the feedback prefab is missing, and assigns the config to the manager it creates.
+- **Automatic share token verification in the setup window.** The SDK is a Pro feature and
+  `sdk-start-session` refuses sessions for Free accounts, which used to surface only as a console
+  warning in a shipped build. Paste a token and the window checks it against the backend by itself,
+  reporting which gate is unmet — plan, SDK mode, or the test being open — with a button to the
+  upgrade page when it is the plan. Incomplete or malformed values are answered locally ("too
+  short — 24 of 36 characters") rather than by a pointless round trip, and **Check Again** re-runs
+  it after a dashboard change that the token itself would not reflect.
+- **HTML documentation** in `Documentation~/playprobe-unity-sdk.html`: self-contained, dark on
+  screen and light when printed, so one file serves as the online manual and the PDF in the package.
 - **`PlayProbeFlowLayoutGroup`** — a wrapping layout that lets each child keep its own width, which
   uGUI has no equivalent of. Tag chips now fit their labels instead of every one being stretched to a
   uniform `GridLayoutGroup` cell, which had "Tag" as wide as "Progression / Pacing".
@@ -47,6 +56,15 @@ several bugs that only showed up over a long session.
 
 ### Fixed
 
+- **The editor tools wrote to a folder nothing loaded from.** The prefab output path, the sprite
+  folder and the emoji atlas were hardcoded to `Assets/unity-sdk`, so renaming the package folder
+  left the builder recreating the old path — two `Resources` folders holding prefabs of the same
+  name, which makes `Resources.Load` ambiguous. All three now derive from where the package
+  actually sits, so a rename or a move just works.
+- **A failed start-session reported the wrong thing.** An HTTP 4xx arrives as a `ProtocolError`,
+  which was handled as a transport failure, throwing away the response body — the only thing that
+  distinguishes a bad token from a closed test or a Free account. The body is now read and reported,
+  with a dedicated message for the Pro-plan case.
 - **`requireConsent` collected nothing and showed nothing.** The built-in consent dialog existed but
   nothing ever spawned it, so turning consent on left the SDK silently inert unless the developer had
   already written their own prompt. `StartSession()` now shows it, gated on the new

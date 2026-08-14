@@ -105,8 +105,8 @@ namespace PlayProbe
         [Tooltip("Leave any slot empty and that shape falls back to Unity's built-in UISprite.\n\n" +
                  "These must be WHITE with an alpha shape: interactive elements tint them through the " +
                  "Button's colour block, so a pre-coloured sprite comes out doubled. Generate a matching " +
-                 "set with the SDK's sprite tool, drop them in Assets/unity-sdk/Textures/UI, and the " +
-                 "prefab builder fills these in by filename.")]
+                 "set with the SDK's sprite tool, drop them in the package's Textures/UI folder, and " +
+                 "the prefab builder fills these in by filename.")]
         public Sprite buttonFill;
 
         [Tooltip("Ring version of buttonFill — draws the border.")]

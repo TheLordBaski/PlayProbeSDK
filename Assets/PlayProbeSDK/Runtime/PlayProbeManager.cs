@@ -657,8 +657,11 @@ namespace PlayProbe
                     long statusCode = request.responseCode;
                     string responseBody = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
                     LogVerbose(responseBody);
-                    if (request.result is UnityWebRequest.Result.ConnectionError
-                        or UnityWebRequest.Result.ProtocolError)
+                    // Only a genuine transport failure is handled as one. An HTTP 4xx also surfaces as
+                    // ProtocolError, and lumping the two together threw away the response body — which
+                    // is the only thing that distinguishes a bad token from a closed test or a Free
+                    // account.
+                    if (request.result is UnityWebRequest.Result.ConnectionError)
                     {
                         string requestError = request.error;
                         Debug.LogWarning($"[PlayProbe] Start session request error: {requestError}");
@@ -670,8 +673,20 @@ namespace PlayProbe
                     {
                         // The body is an error message, not a session — safe to log in a shipped player
                         // and the only way a developer can tell a bad token from a closed test.
-                        Debug.LogWarning(
-                            $"[PlayProbe] Start session request failed with status code {statusCode} and response: {responseBody}");
+                        if (responseBody != null && responseBody.Contains("plan_required"))
+                        {
+                            Debug.LogWarning(
+                                "[PlayProbe] The PlayProbe Unity SDK is a Pro feature and the account that owns " +
+                                "this test is on the Free plan, so no session was started. Upgrade at " +
+                                "https://playprobe.io/account/billing, then run Tools > PlayProbe > Setup and " +
+                                "press Check Token to confirm.");
+                        }
+                        else
+                        {
+                            Debug.LogWarning(
+                                $"[PlayProbe] Start session request failed with status code {statusCode} and response: {responseBody}");
+                        }
+
                         IsSessionActive = false;
                         return false;
                     }
