@@ -139,8 +139,7 @@ namespace PlayProbe
             if (overflow > 0)
             {
                 Debug.LogWarning(
-                    $"[PlayProbe] Event buffer is full; dropped the {overflow} oldest event(s). " +
-                    "Uploads are probably failing — check the console for earlier request warnings.");
+                    $"[PlayProbe] Event buffer is full; dropped the {overflow} oldest event(s). Uploads are probably failing — check the console for earlier request warnings.");
             }
 
             if (shouldFlush)
@@ -275,10 +274,11 @@ namespace PlayProbe
 
             if (shouldDrop)
             {
-                Debug.LogWarning($"[PlayProbe] Dropped {droppedCount} buffered sdk events after {MaxRetries} attempts.");
+                Debug.LogWarning(
+                    $"[PlayProbe] Dropped {droppedCount} buffered sdk events after {MaxRetries} attempts.");
             }
         }
-        
+
         internal void StartFlushLoop()
         {
             PlayProbeManager manager = PlayProbeManager.Instance;
@@ -386,7 +386,7 @@ namespace PlayProbe
 
         internal void LogFps(float fps)
         {
-            PlayProbeEvent payload = new ()
+            PlayProbeEvent payload = new()
             {
                 event_type = "fps",
                 event_name = "fps_sample",
@@ -396,7 +396,7 @@ namespace PlayProbe
 
             Enqueue(payload);
         }
-        
+
         /// <summary>
         /// Logs a single point in the world — a death, a chest opened, wherever the player gave up.
         /// One-off counterpart to the periodic sampling <c>enablePositionHeatmap</c> does.
@@ -423,6 +423,11 @@ namespace PlayProbe
             };
 
             Enqueue(payload);
+        }
+
+        public void OnDestroy()
+        {
+            Application.logMessageReceived -= HandleUnityLog;
         }
     }
 }

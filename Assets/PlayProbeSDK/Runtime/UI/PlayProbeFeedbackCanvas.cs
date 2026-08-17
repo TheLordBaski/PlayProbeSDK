@@ -139,8 +139,23 @@ namespace PlayProbe
 
         private void BuildCategories()
         {
+            // Both empty means the popup was deliberately built without a category picker, which is
+            // supported — stay quiet. Exactly one set is a wiring mistake, and staying quiet about
+            // that is how a prefab shipped with an empty row under its "Type" heading, with every
+            // report submitted carrying no category at all.
+            if (categoryContainer == null && categoryButtonPrefab == null)
+            {
+                return;
+            }
+
             if (categoryContainer == null || categoryButtonPrefab == null)
             {
+                Debug.LogWarning(
+                    "[PlayProbe] The feedback popup has a category " +
+                    (categoryContainer == null ? "button prefab but no container" : "container but no button prefab") +
+                    ", so no category buttons were built and reports will have no category. Run " +
+                    "Tools > PlayProbe > UI > Rebuild All Prefabs, or wire both fields on your own " +
+                    "PlayProbeFeedbackCanvas.");
                 return;
             }
 

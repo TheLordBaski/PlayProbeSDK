@@ -154,6 +154,15 @@ main { padding-top: 2rem; min-width: 0; }
 
 .pill--pro { border-color: hsl(263 70% 55% / 0.5); background: var(--primary-soft); color: hsl(263 80% 78%); }
 
+a.pill--link {
+  border-color: hsl(187 85% 53% / 0.45);
+  background: var(--accent-soft);
+  color: hsl(187 70% 74%);
+  text-decoration: none;
+}
+
+a.pill--link:hover { border-color: var(--accent); color: var(--accent); }
+
 /* ---------- Typography ---------- */
 
 section { margin-bottom: 4rem; scroll-margin-top: 1.5rem; }
@@ -349,6 +358,10 @@ figcaption { margin-top: 0.6rem; font-size: 0.85rem; color: var(--text-muted); }
   font-family: var(--mono);
   font-size: 0.82rem;
   line-height: 1.85;
+  /* The tree is drawn with literal newlines and box-drawing characters. A div collapses both, so
+     without this it reflows into one paragraph and the structure is lost. Not pre-wrap: wrapping a
+     long line would break the alignment of the branch characters. */
+  white-space: pre;
   overflow-x: auto;
   margin: 0 0 1.5rem;
 }
@@ -392,8 +405,17 @@ footer {
 
   @page { margin: 16mm 14mm 18mm; }
 
+  /* Browsers drop background colours when printing unless the page asks for them by name. Without
+     this, every code block, callout and file tree flattens to plain white and the document loses
+     the shading that separates prose from example. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   body { background: #fff; color: #16161a; font-size: 10.5pt; line-height: 1.5; }
-  .sidebar, .shot-frame__hint { display: none; }
+  /* The PDF link is meaningless once you are reading the PDF. */
+  .sidebar, .shot-frame__hint, .pill--link { display: none; }
   .layout { display: block; max-width: none; padding: 0; }
   main { padding-top: 0; }
 
@@ -422,6 +444,16 @@ footer {
   .note { background: #f4f4f7; border: 1px solid #d8d8e0; border-left: 3px solid #5b2fb3; }
   .shot-frame { background: #fafafc; border-color: #c8c8d2; min-height: 90px; }
   .masthead { border-bottom-color: #d8d8e0; }
+
+  /* Three colours that only make sense against the dark screen background. Each is set on the
+     element itself rather than through a variable, so the palette swap above does not reach them
+     and they would print as near-white on near-white. */
+  .note__title { color: #000; }
+  .tree .dir { color: #5b2fb3; }
+  /* Base before modifier, matching the screen rules: the two have equal specificity, so the pro
+     variant only wins by coming second. */
+  .pill { background: #f4f4f7; border-color: #d8d8e0; color: #43434d; }
+  .pill--pro { color: #4a259c; border-color: #b9a3e8; background: #f1ebfd; }
   figure.shot img { border-color: #d8d8e0; }
   footer { border-top-color: #d8d8e0; }
 }
@@ -466,6 +498,12 @@ footer {
       <span class="pill">v0.1.0</span>
       <span class="pill">Unity 6000.0+</span>
       <span class="pill pill--pro">Pro plan</span>
+      <!--
+        One relative href that works in both places this file is served from: inside the package the
+        PDF sits in the same folder, and on the site it sits beside unity-sdk.html in /docs. Hidden
+        in print, where it would be a link to the document you are already holding.
+      -->
+      <a class="pill pill--link" href="PlayProbe-Unity-SDK.pdf">Download PDF</a>
     </div>
   </div>
 </header>
@@ -649,7 +687,7 @@ when you are done poking at it.
 ├── <span class="dir">Data/</span>                     <span class="cmt">wire types. Mostly internal.</span>
 ├── <span class="dir">Resources/</span>                <span class="cmt">the 13 generated UI prefabs</span>
 ├── <span class="dir">Textures/UI/</span>              <span class="cmt">the nine white shape sprites</span>
-└── <span class="dir">Documentation~/</span>           <span class="cmt">this file</span>
+└── <span class="dir">Documentation/</span>            <span class="cmt">this file, and the PDF built from it</span>
 
 <span class="dir">Assets/Resources/</span>            <span class="cmt">← YOUR files. These two are yours to edit.</span>
 ├── PlayProbeConfig.asset     <span class="cmt">token, toggles, privacy settings</span>

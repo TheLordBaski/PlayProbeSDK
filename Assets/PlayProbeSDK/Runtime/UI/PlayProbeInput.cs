@@ -143,5 +143,14 @@ namespace PlayProbe
             _wasPressedThisFrame = buttonControlType?.GetProperty(
                 "wasPressedThisFrame", BindingFlags.Public | BindingFlags.Instance);
         }
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatic(){
+            _resolved = false;
+            _keyboardCurrent = null;
+            _escapeKey = null;
+            _backspaceKey = null;
+            _wasPressedThisFrame = null;
+        }
     }
 }

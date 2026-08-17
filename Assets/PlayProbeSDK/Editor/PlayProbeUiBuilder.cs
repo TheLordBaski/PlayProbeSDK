@@ -1054,6 +1054,13 @@ namespace PlayProbe.Editor
             LinkInPrefab<PlayProbeTagSelector>("PlayProbeFeedbackCanvas", "chipPrefab", chipPrefab);
             LinkInPrefab<PlayProbeTagSelector>("PlayProbeTextQuestion", "chipPrefab", chipPrefab);
             LinkInPrefab<MultipleChoiceQuestion>("PlayProbeMultipleOptions", "selectionButton", optionPrefab);
+
+            // The feedback popup's category buttons ("Bug / Suggestion / Praise / Other") are spawned
+            // from the same selectable-button prefab as the multiple-choice options. This line was
+            // missing, so categoryButtonPrefab stayed null and BuildCategories() bailed out — the
+            // popup rendered its "Type" heading above an empty row and every report was submitted
+            // with no category at all.
+            LinkInPrefab<PlayProbeFeedbackCanvas>("PlayProbeFeedbackCanvas", "categoryButtonPrefab", optionPrefab);
         }
 
         private static T LoadPrefabComponent<T>(string prefabName) where T : Component

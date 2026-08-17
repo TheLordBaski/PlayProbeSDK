@@ -177,5 +177,10 @@ namespace PlayProbe
                 canvasGroup.alpha = toAlpha;
             }
         }
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatic(){
+            _current = null;
+        }
     }
 }

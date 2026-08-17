@@ -19,8 +19,9 @@ Package: `io.playprobe.sdk` · Unity 6000.0+ · Full guide: [`documentation.md`]
 
 ## Install
 
-Add the package through the Package Manager (`Window > Package Manager > + > Add package from git
-URL…`), or point it at a local copy of the `PlayProbeSDK` folder.
+From the **Unity Asset Store** — search for PlayProbe, or open it from
+`Window > Package Manager > My Assets` once you own it. That is the only distribution channel;
+there is no public Git URL.
 
 It depends on `com.unity.ugui`, which every Unity project already has.
 

@@ -127,5 +127,9 @@ namespace PlayProbe
 
             Application.OpenURL(parsed.AbsoluteUri);
         }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatic(){
+            _ownedEventSystem = null;
+        }
     }
 }

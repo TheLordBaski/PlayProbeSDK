@@ -1,5 +1,6 @@
 // Copyright PlayProbe.io 2026. All rights reserved
 
+using System;
 using UnityEngine;
 
 namespace PlayProbe
@@ -220,6 +221,13 @@ namespace PlayProbe
         /// the editor tooling after the asset is created or edited.
         /// </summary>
         public static void InvalidateCache()
+        {
+            _cached = null;
+            _lookupDone = false;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
         {
             _cached = null;
             _lookupDone = false;

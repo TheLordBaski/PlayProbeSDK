@@ -170,5 +170,9 @@ namespace PlayProbe
                 label.SetText(value ?? string.Empty);
             }
         }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] 
+        private static void ResetStatic(){
+            _current = null;
+        }
     }
 }

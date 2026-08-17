@@ -154,6 +154,11 @@ namespace PlayProbe
             EndSession();
         }
 
+        private void OnDestroy()
+        {
+            Events.OnDestroy();
+        }
+
         #endregion
 
 
@@ -164,7 +169,10 @@ namespace PlayProbe
         ///
         /// With <c>isStandaloneTest</c> on this posts straight away using the share token. With it off,
         /// the handoff-code screen is shown first and the session starts once the tester enters a valid
-        /// code from their dashboard session page.
+        /// code from their dashboard session page. On WebGL, if a <c>handoff_token</c> is present in the
+        /// build's own URL (the PlayProbe session page attaches it there for launch), that token is used
+        /// automatically and the manual screen is skipped; it still falls back to manual entry if the
+        /// token is missing, invalid, or expired.
         ///
         /// Register your surveys <b>before</b> calling this — the schema travels with the start
         /// request, and the backend replies with the question ids used at submit time.
@@ -207,7 +215,7 @@ namespace PlayProbe
             }
             else
             {
-                ShowHandOffTokenScreen();
+                StartHandOffFlow();
             }
         }
 
@@ -492,6 +500,89 @@ namespace PlayProbe
             }
         }
 
+        // On WebGL, the PlayProbe session page attaches ?handoff_token=... directly to the game URL
+        // used for the iframe/new-tab launch, so a WebGL build can skip the manual code-entry screen
+        // when that token is present and still valid. Every other path (no token found, or the token
+        // turns out invalid/expired) falls back to the manual screen, since we cannot guarantee the
+        // token survives every third-party host's URL handling (e.g. itch.io page embeds).
+        private void StartHandOffFlow()
+        {
+            string urlHandOffToken = Application.platform == RuntimePlatform.WebGLPlayer
+                ? GetHandOffTokenFromUrl()
+                : null;
+
+            if (string.IsNullOrWhiteSpace(urlHandOffToken))
+            {
+                ShowHandOffTokenScreen();
+                return;
+            }
+
+            _ = TryAutoHandOffAsync(urlHandOffToken);
+        }
+
+        private async Task TryAutoHandOffAsync(string handOffToken)
+        {
+            bool isValid = await CheckHandOffStatus(handOffToken);
+            if (!isValid)
+            {
+                Debug.LogWarning("[PlayProbe] Handoff token from URL was invalid or expired. Falling back to manual entry.");
+                ShowHandOffTokenScreen();
+                return;
+            }
+
+            bool started = await StartHandOffSession(handOffToken);
+            if (!started)
+            {
+                Debug.LogWarning("[PlayProbe] Could not start session with handoff token from URL. Falling back to manual entry.");
+                ShowHandOffTokenScreen();
+            }
+        }
+
+        // Application.absoluteURL is the WebGL build's own document location (the iframe's or tab's
+        // URL, not the parent page's), so this reads the same query string the browser navigated to.
+        private static string GetHandOffTokenFromUrl()
+        {
+            string url = Application.absoluteURL;
+            if (string.IsNullOrEmpty(url))
+            {
+                return null;
+            }
+
+            int queryIndex = url.IndexOf('?');
+            if (queryIndex < 0 || queryIndex == url.Length - 1)
+            {
+                return null;
+            }
+
+            string query = url.Substring(queryIndex + 1);
+
+            int fragmentIndex = query.IndexOf('#');
+            if (fragmentIndex >= 0)
+            {
+                query = query.Substring(0, fragmentIndex);
+            }
+
+            foreach (string pair in query.Split('&'))
+            {
+                if (pair.Length == 0)
+                {
+                    continue;
+                }
+
+                int equalsIndex = pair.IndexOf('=');
+                string key = equalsIndex >= 0 ? pair.Substring(0, equalsIndex) : pair;
+                if (key != "handoff_token")
+                {
+                    continue;
+                }
+
+                string value = equalsIndex >= 0 ? pair.Substring(equalsIndex + 1) : string.Empty;
+                return Uri.UnescapeDataString(value);
+            }
+
+            return null;
+        }
+
         private void ShowHandOffTokenScreen()
         {
             PlayProbeTokenInputController startScreen =
@@ -697,8 +788,14 @@ namespace PlayProbe
                             JsonUtility.FromJson<PlayProbeSdkSessionStartResponse>(responseBody);
                         _runtimeConfig.SessionId = startResponse.session_id;
                         _runtimeConfig.SessionToken = startResponse.session_token;
+                        List<SurveySchemaItem> list = new List<SurveySchemaItem>();
+                        foreach (SurveySchemaItem trigger in startResponse.survey_triggers)
+                        {
+                            list.Add(trigger);
+                        }
+
                         _surveySchemaItems = startResponse.survey_triggers != null
-                            ? startResponse.survey_triggers.ToList()
+                            ? list
                             : new List<SurveySchemaItem>();
                         AnswerTags = startResponse.answer_tags ?? Array.Empty<AnswerTag>();
                     }
@@ -804,8 +901,15 @@ namespace PlayProbe
                     return;
                 }
 
-                SurveySchemaItem questionSchema =
-                    _surveySchemaItems.FirstOrDefault(item => item != null && item.trigger_key == trigger);
+                SurveySchemaItem questionSchema = null;
+                foreach (SurveySchemaItem item in _surveySchemaItems)
+                {
+                    if (item != null && item.trigger_key == trigger)
+                    {
+                        questionSchema = item;
+                        break;
+                    }
+                }
 
                 if (questionSchema == null)
                 {
